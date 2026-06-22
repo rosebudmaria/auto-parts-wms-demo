@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PartTrack WMS — Used Auto Parts Warehouse Management (Demo)</title>
+<meta name="description" content="Interactive prototype of a Warehouse Management System for a used auto parts business: barcode put-away, scan-to-locate, movement history, inventory aging, eBay order pick lists, and reporting.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Cpath d='M16 6l8 4.5v9L16 24l-8-4.5v-9z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M8 10.5l8 4.5 8-4.5M16 24v-9' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#f1f5f9; --panel:#ffffff; --panel-2:#f8fafc;
+    --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --faint:#94a3b8; --line:#e2e8f0; --line-2:#eef2f7;
+    --brand:#2563eb; --brand-dk:#1d4ed8; --brand-soft:#eff6ff;
+    --ok:#16a34a; --ok-soft:#dcfce7; --warn:#d97706; --warn-soft:#fef3c7;
+    --danger:#dc2626; --danger-soft:#fee2e2; --purple:#7c3aed; --purple-soft:#f3e8ff;
+    --sidebar:#0f172a; --sidebar-2:#1e293b; --sidebar-ink:#cbd5e1; --sidebar-faint:#64748b;
+    --radius:14px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.05);
+    --shadow-lg:0 10px 30px rgba(15,23,42,.12);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer}
+  svg{display:block}
+  ::selection{background:#bfdbfe}
+
+  /* ---------- layout ---------- */
+  #app{display:flex;min-height:100vh}
+  .sidebar{width:250px;flex:none;background:var(--sidebar);color:var(--sidebar-ink);display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:60;height:100vh;overflow-y:auto}
+  .main{flex:1;min-width:0;margin-left:250px;display:flex;flex-direction:column}
+  .content{padding:26px clamp(16px,3vw,34px);max-width:1320px;width:100%;margin:0 auto;flex:1}
+
+  /* ---------- sidebar ---------- */
+  .brand{display:flex;align-items:center;gap:11px;padding:20px 18px 18px}
+  .brand .mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.4)}
+  .brand .name{font-weight:800;font-size:17px;color:#fff;letter-spacing:-.01em;line-height:1.1}
+  .brand .name small{display:block;font-weight:600;font-size:10.5px;letter-spacing:.14em;color:var(--sidebar-faint);margin-top:2px}
+  .nav{padding:6px 12px 18px;flex:1}
+  .nav-label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sidebar-faint);padding:16px 12px 7px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:var(--sidebar-ink);font-size:14px;font-weight:500;margin-bottom:2px;transition:background .12s,color .12s;position:relative}
+  .nav a svg{width:18px;height:18px;flex:none;opacity:.85}
+  .nav a:hover{background:var(--sidebar-2);color:#fff}
+  .nav a.active{background:linear-gradient(90deg,rgba(37,99,235,.22),rgba(37,99,235,.06));color:#fff}
+  .nav a.active::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:3px;border-radius:3px;background:var(--brand)}
+  .nav a.active svg{opacity:1;color:#93c5fd}
+  .nav a .tag{margin-left:auto;font-size:11px;font-weight:700;background:var(--brand);color:#fff;border-radius:999px;padding:1px 7px}
+  .sb-foot{padding:14px 18px;border-top:1px solid var(--sidebar-2);font-size:11.5px;color:var(--sidebar-faint)}
+
+  /* ---------- topbar ---------- */
+  .topbar{position:sticky;top:0;z-index:40;height:62px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 clamp(14px,3vw,28px)}
+  .hamb{display:none;background:none;border:none;color:var(--ink);padding:6px;border-radius:8px}
+  .hamb:hover{background:var(--panel-2)}
+  .search{flex:1;max-width:440px;position:relative;display:flex;align-items:center}
+  .search svg{position:absolute;left:12px;width:17px;height:17px;color:var(--faint);pointer-events:none}
+  .search input{width:100%;border:1px solid var(--line);background:var(--panel-2);border-radius:10px;padding:9px 12px 9px 36px;font-size:13.5px;color:var(--ink)}
+  .search input:focus{outline:none;border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px var(--brand-soft)}
+  .tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .tb-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--ink-2)}
+  .tb-btn:hover{border-color:var(--brand);color:var(--brand)}
+  .tb-btn svg{width:16px;height:16px}
+  .sync-pill{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ok);background:var(--ok-soft);border-radius:999px;padding:6px 11px}
+  .sync-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(22,163,74,.18)}
+  .iconbtn{position:relative;border:1px solid var(--line);background:#fff;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+  .iconbtn:hover{border-color:var(--brand);color:var(--brand)}
+  .iconbtn svg{width:18px;height:18px}
+  .iconbtn .badge-dot{position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;border-radius:999px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff}
+  .userbox{position:relative}
+  .userbtn{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:5px 9px 5px 6px}
+  .userbtn:hover{border-color:var(--brand)}
+  .avatar{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+  .userbtn .u-meta{text-align:left;line-height:1.15}
+  .userbtn .u-meta b{font-size:12.5px;display:block}
+  .userbtn .u-meta span{font-size:11px;color:var(--muted)}
+  .menu{position:absolute;right:0;top:46px;width:248px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-lg);padding:7px;display:none;z-index:50}
+  .menu.open{display:block}
+  .menu .mh{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:8px 9px 5px}
+  .menu button{width:100%;display:flex;align-items:center;gap:9px;padding:8px 9px;border:none;background:none;border-radius:8px;font-size:13px;text-align:left;color:var(--ink-2)}
+  .menu button:hover{background:var(--panel-2)}
+  .menu button.cur{background:var(--brand-soft);color:var(--brand);font-weight:600}
+
+  /* ---------- generic ---------- */
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .page-head h1{font-size:23px;font-weight:800;letter-spacing:-.02em}
+  .page-head p{color:var(--muted);font-size:13.5px;margin-top:3px}
+  .row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card.pad{padding:20px}
+  .card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line-2)}
+  .card-h h3{font-size:14.5px;font-weight:700}
+  .card-h .sub{font-size:12px;color:var(--muted);font-weight:500}
+  .grid{display:grid;gap:16px}
+  .muted{color:var(--muted)}
+  .mono{font-family:var(--mono)}
+  .nowrap{white-space:nowrap}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:13.5px;padding:10px 16px;border-radius:10px;border:1px solid transparent;transition:.12s}
+  .btn svg{width:16px;height:16px}
+  .btn-primary{background:var(--brand);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.22)}
+  .btn-primary:hover{background:var(--brand-dk)}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink-2)}
+  .btn-ghost:hover{border-color:var(--brand);color:var(--brand)}
+  .btn-soft{background:var(--brand-soft);color:var(--brand)}
+  .btn-soft:hover{background:#dbeafe}
+  .btn-sm{padding:7px 11px;font-size:12.5px;border-radius:9px}
+  .btn-block{width:100%}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .badge .d{width:6px;height:6px;border-radius:50%}
+  .b-available{background:var(--ok-soft);color:#15803d}.b-available .d{background:#16a34a}
+  .b-sold{background:var(--brand-soft);color:#1d4ed8}.b-sold .d{background:#2563eb}
+  .b-reserved{background:var(--warn-soft);color:#b45309}.b-reserved .d{background:#d97706}
+  .b-scrapped{background:#f1f5f9;color:#475569}.b-scrapped .d{background:#94a3b8}
+  .b-notlisted{background:var(--purple-soft);color:#6d28d9}.b-notlisted .d{background:#7c3aed}
+  .b-open{background:var(--warn-soft);color:#b45309}
+  .b-inprogress{background:var(--brand-soft);color:#1d4ed8}
+  .b-completed{background:var(--ok-soft);color:#15803d}
+  .b-awaitingpick{background:var(--warn-soft);color:#b45309}
+  .b-picked{background:var(--brand-soft);color:#1d4ed8}
+  .b-shipped{background:var(--ok-soft);color:#15803d}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(176px,1fr));gap:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 17px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .stat .ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .stat .ico svg{width:19px;height:19px}
+  .stat .v{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .stat .l{font-size:12.5px;color:var(--muted);font-weight:500;margin-top:5px}
+  .stat .sm{font-size:11.5px;font-weight:600;margin-top:8px;display:inline-flex;align-items:center;gap:4px}
+
+  /* tables */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);padding:11px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:12px 16px;border-bottom:1px solid var(--line-2);vertical-align:middle;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{transition:background .1s}
+  tbody tr:hover{background:var(--panel-2)}
+  td .pname{font-weight:600;color:var(--ink)}
+  .lk{color:var(--brand);font-weight:600;cursor:pointer}
+  .lk:hover{text-decoration:underline}
+
+  /* photo */
+  .photo{border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;flex:none}
+  .photo svg.glyph{width:46%;height:46%;opacity:.92}
+  .photo.sm{width:46px;height:46px;border-radius:9px}
+  .photo.sm svg.glyph{width:52%;height:52%}
+  .photo.sm .cam{display:none}
+  .photo.lg{width:100%;aspect-ratio:4/3}
+  .photo .cam{position:absolute;bottom:7px;right:7px;background:rgba(15,23,42,.62);color:#fff;font-size:10px;font-weight:600;padding:3px 7px;border-radius:7px;display:flex;align-items:center;gap:4px}
+  .photo .cam svg{width:11px;height:11px}
+
+  /* fields */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+  .input,.select,textarea.input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff}
+  .input:focus,.select:focus,textarea.input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;background-size:15px;padding-right:34px}
+
+  /* scanner box */
+  .scanbox{border:2px dashed #cbd5e1;border-radius:14px;background:linear-gradient(180deg,#fff,var(--panel-2));padding:22px;text-align:center}
+  .scanbox.armed{border-color:var(--brand);background:var(--brand-soft)}
+  .scan-input{display:flex;gap:10px;max-width:480px;margin:0 auto}
+  .scan-input input{flex:1;border:1px solid var(--line);border-radius:10px;padding:13px 15px;font-size:17px;font-family:var(--mono);letter-spacing:.04em;text-align:center;background:#fff}
+  .scan-input input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .scan-hint{font-size:12.5px;color:var(--muted);margin-top:11px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .chip{font-family:var(--mono);font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--ink-2);transition:.12s}
+  .chip:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
+
+  .steps{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--faint);background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 14px;flex:1;min-width:150px}
+  .step .n{width:23px;height:23px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+  .step.active{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
+  .step.active .n{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .step.done{color:var(--ok);border-color:#bbf7d0;background:var(--ok-soft)}
+  .step.done .n{background:var(--ok);color:#fff;border-color:var(--ok)}
+
+  /* detail layout */
+  .detail{display:grid;grid-template-columns:300px 1fr;gap:20px}
+  .spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line-2);border:1px solid var(--line-2);border-radius:12px;overflow:hidden}
+  .spec .c{background:#fff;padding:12px 14px}
+  .spec .k{font-size:11px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+  .spec .val{font-size:14px;font-weight:600;color:var(--ink)}
+
+  .locline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;margin-top:4px}
+  .locline .seg{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-weight:600}
+  .locline .seg small{color:var(--faint);font-weight:600;font-size:10px;display:block;text-transform:uppercase;letter-spacing:.04em}
+  .locline svg{width:14px;height:14px;color:var(--faint)}
+
+  /* timeline */
+  .timeline{position:relative;padding-left:8px}
+  .tl{display:flex;gap:13px;padding-bottom:18px;position:relative}
+  .tl:not(:last-child)::before{content:"";position:absolute;left:9px;top:22px;bottom:-2px;width:2px;background:var(--line)}
+  .tl .dot{width:20px;height:20px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;z-index:1}
+  .tl .dot svg{width:11px;height:11px}
+  .tl .body b{font-size:13.5px;font-weight:600}
+  .tl .body .meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .tl .body .meta b{color:var(--ink-2);font-weight:600}
+
+  /* callout */
+  .note{display:flex;gap:10px;background:var(--brand-soft);border:1px solid #dbeafe;border-radius:11px;padding:12px 14px;font-size:12.5px;color:#1e40af;line-height:1.5}
+  .note svg{width:17px;height:17px;flex:none;margin-top:1px}
+  .note.amber{background:var(--warn-soft);border-color:#fde68a;color:#92400e}
+  .note.plain{background:var(--panel-2);border-color:var(--line);color:var(--ink-2)}
+
+  /* donut + bars */
+  .donut{width:150px;height:150px;border-radius:50%;position:relative;flex:none}
+  .donut-hole{position:absolute;inset:21px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut-hole b{font-size:27px;font-weight:800;line-height:1}
+  .donut-hole span{font-size:11px;color:var(--muted);margin-top:2px}
+  .legend{display:flex;flex-direction:column;gap:9px}
+  .legend .li{display:flex;align-items:center;gap:9px;font-size:13px}
+  .legend .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .legend .li .n{margin-left:auto;font-weight:700;color:var(--ink)}
+  .bar-row{display:flex;align-items:center;gap:11px;margin-bottom:11px;font-size:12.5px}
+  .bar-label{width:78px;flex:none;color:var(--ink-2);font-weight:600}
+  .bar-track{flex:1;height:10px;background:var(--panel-2);border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:999px}
+  .bar-val{width:34px;text-align:right;font-weight:700;flex:none}
+
+  .activity .a{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--line-2)}
+  .activity .a:last-child{border-bottom:none}
+  .activity .a .av{width:30px;height:30px;border-radius:8px;font-size:11px;flex:none}
+  .activity .a .txt{font-size:12.5px;line-height:1.45}
+  .activity .a .txt b{font-weight:600;color:var(--ink)}
+  .activity .a .txt .t{color:var(--faint);font-size:11.5px;margin-top:1px}
+
+  .empty{text-align:center;padding:42px 20px;color:var(--muted)}
+  .empty svg{width:42px;height:42px;color:var(--faint);margin:0 auto 12px}
+  .empty b{display:block;color:var(--ink-2);font-size:15px;margin-bottom:4px}
+
+  .demo-flag{position:fixed;bottom:14px;left:14px;z-index:55;background:var(--ink);color:#fff;font-size:11.5px;font-weight:600;padding:7px 13px;border-radius:999px;opacity:.9;display:flex;align-items:center;gap:7px;box-shadow:var(--shadow-lg)}
+  .demo-flag .d{width:7px;height:7px;border-radius:50%;background:#fbbf24}
+
+  #overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:55}
+  #toast{position:fixed;bottom:20px;right:20px;z-index:80;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .toast{background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:12px 16px;border-radius:11px;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:9px;max-width:340px;animation:slidein .25s ease}
+  .toast svg{width:17px;height:17px;flex:none}
+  .toast.ok{background:#15803d}.toast.err{background:#b91c1c}.toast.info{background:var(--brand-dk)}
+  @keyframes slidein{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  @media(max-width:980px){
+    .sidebar{transform:translateX(-100%);transition:transform .22s ease}
+    body.nav-open .sidebar{transform:translateX(0)}
+    body.nav-open #overlay{display:block}
+    .main{margin-left:0}
+    .hamb{display:flex}
+    .detail{grid-template-columns:1fr}
+  }
+  @media(max-width:560px){
+    .search{display:none}
+    .userbtn .u-meta{display:none}
+    .page-head h1{font-size:20px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22V12"/></svg></span>
+      <span class="name">PartTrack<small>WMS · AUTO PARTS</small></span>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sb-foot">v0.9 demo build · sample data only</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamb" data-action="menu" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input data-search-global type="text" placeholder="Search parts, barcode, vehicle…  (press Enter)">
+      </div>
+      <div class="tb-right">
+        <a class="tb-btn" href="#/locate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/></svg><span class="lbl-scan">Scan</span></a>
+        <span id="tb-sync"></span>
+        <button class="iconbtn" data-action="goto-requests" aria-label="Alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="tb-bell" class="badge-dot" style="display:none"></span></button>
+        <div class="userbox" id="tb-user"></div>
+      </div>
+    </header>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+<div id="overlay" data-action="menu"></div>
+<div class="demo-flag"><span class="d"></span>Interactive demo · sample data</div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   PartTrack WMS — interactive front-end prototype
+   Single-file demo: no build step, no backend. Sample data is
+   generated on first load and persisted to localStorage so that
+   put-away / move / pick actions survive a refresh.
+   In a production build the data layer below would be replaced by
+   a REST/GraphQL API over a relational database (see README).
+   ============================================================ */
+
+/* ---------- tiny helpers ---------- */
+var DAY = 86400000;
+var NOW = Date.now();
+var KEY = 'parttrack_wms_v1';
+var ago = function(d){ return NOW - Math.round(d*DAY); };
+var $  = function(s,r){ return (r||document).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+var esc = function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
+var money = function(n){ return (n||0).toLocaleString('en-US',{style:'currency',currency:'USD'}); };
+var fmtDate = function(ts){ return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+var fmtDT = function(ts){ return new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); };
+var daysIn = function(ts){ return Math.max(0, Math.floor((NOW-ts)/DAY)); };
+var relTime = function(ts){
+  var s = Math.floor((NOW-ts)/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  if(s<7*86400) return Math.floor(s/86400)+'d ago';
+  return fmtDate(ts);
+};
+var inStock = function(p){ return p.status==='Available'||p.status==='Reserved'||p.status==='Not Listed'; };
+
+/* ---------- icons ---------- */
+var P = {
+  dash:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>',
+  scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/>',
+  receive:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>',
+  move:'<path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><path d="M2 12h20"/><path d="M12 2v20"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.2"/>',
+  chart:'<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/>',
+  flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/>',
+  car:'<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M5 11h14a2 2 0 0 1 2 2v4h-3M5 11a2 2 0 0 0-2 2v4h3"/><circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/><path d="M8.5 17h7"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  sync:'<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  x:'<path d="M18 6L6 18M6 6l12 12"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>',
+  pin:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  box:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22V12"/>',
+  cam:'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  dollar:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  layers:'<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>',
+  truck:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+  save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+  reset:'<path d="M3 2v6h6"/><path d="M3.51 9a9 9 0 1 0 2.13-3.36L3 8"/>'
+};
+function svg(name,cls){ return '<svg class="'+(cls||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(P[name]||P.box)+'</svg>'; }
+
+/* category visuals for the part "photo" placeholder */
+var CAT = {
+  lighting:{c:'#f59e0b',g:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12c.5.5 1 1.6 1 3h6c0-1.4.5-2.5 1-3a7 7 0 0 0-4-12z"/>'},
+  body:{c:'#3b82f6',g:'<rect x="4" y="3" width="13" height="18" rx="2"/><path d="M13 12h.01"/><path d="M17 7h3v10h-3"/>'},
+  engine:{c:'#ef4444',g:'<path d="M6 9h6l2-2h3v4h2v4h-2v2h-4l-2-2H6v3H3v-3H2v-4h1V9h3z"/>'},
+  drivetrain:{c:'#8b5cf6',g:'<circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'},
+  electrical:{c:'#eab308',g:'<path d="M13 2L3 14h7l-1 8 10-12h-7z"/>'},
+  interior:{c:'#14b8a6',g:'<path d="M4 19v-6a2 2 0 0 1 2-2h1V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5h3a2 2 0 0 1 2 2v6"/><path d="M4 19h16"/>'},
+  glass:{c:'#06b6d4',g:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 11h18M12 4v14"/>'},
+  wheel:{c:'#64748b',g:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>'},
+  suspension:{c:'#10b981',g:'<path d="M7 3h10M7 21h10"/><path d="M8 3c0 2.2 8 1.8 8 4s-8 1.8-8 4 8 1.8 8 4-8 1.8-8 3"/>'},
+  mirror:{c:'#0ea5e9',g:'<rect x="4" y="4" width="16" height="11" rx="3"/><path d="M9 15v2a3 3 0 0 0 6 0v-2"/>'}
+};
+function partPhoto(part, cls){
+  var m = CAT[part.category] || {c:'#64748b', g:P.box};
+  return '<div class="photo '+(cls||'')+'" style="background:linear-gradient(135deg,'+m.c+'22,'+m.c+'08)">'+
+    '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="'+m.c+'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+m.g+'</svg>'+
+    '<span class="cam">'+svg('cam')+'eBay photo</span></div>';
+}
+
+/* ---------- seed data ---------- */
+function seedData(){
+  var vehicles = [
+    {id:'V-1042',year:2016,make:'Honda',model:'Accord EX',vin:'1HGCR2F8XGA001042',acq:120},
+    {id:'V-1038',year:2014,make:'Toyota',model:'Camry LE',vin:'4T1BF1FK0EU001038',acq:96},
+    {id:'V-1051',year:2018,make:'Ford',model:'F-150 XLT',vin:'1FTEW1EP2JF001051',acq:62},
+    {id:'V-1029',year:2013,make:'Chevrolet',model:'Silverado 1500',vin:'3GCPCSE07DG001029',acq:155},
+    {id:'V-1063',year:2017,make:'Nissan',model:'Altima SV',vin:'1N4AL3AP9HC001063',acq:42},
+    {id:'V-1057',year:2015,make:'BMW',model:'328i',vin:'WBA3A5C5XFP001057',acq:78},
+    {id:'V-1070',year:2019,make:'Jeep',model:'Grand Cherokee',vin:'1C4RJFAG7KC001070',acq:26}
+  ];
+  var boxes = {
+    'BX-1187':{building:'A',row:'12',section:'C',shelf:'3',bin:'2'},
+    'BX-1188':{building:'A',row:'12',section:'C',shelf:'3',bin:'3'},
+    'BX-1190':{building:'A',row:'12',section:'D',shelf:'1',bin:'1'},
+    'BX-1201':{building:'A',row:'14',section:'A',shelf:'2',bin:'4'},
+    'BX-1210':{building:'A',row:'15',section:'B',shelf:'4',bin:'1'},
+    'BX-1225':{building:'A',row:'16',section:'C',shelf:'1',bin:'2'},
+    'BX-2002':{building:'B',row:'03',section:'A',shelf:'1',bin:'1'},
+    'BX-2003':{building:'B',row:'03',section:'A',shelf:'1',bin:'2'},
+    'BX-2010':{building:'B',row:'04',section:'B',shelf:'2',bin:'3'},
+    'BX-2011':{building:'B',row:'04',section:'B',shelf:'2',bin:'4'},
+    'BX-2020':{building:'B',row:'05',section:'C',shelf:'3',bin:'1'},
+    'BX-2031':{building:'B',row:'06',section:'A',shelf:'1',bin:'5'},
+    'BX-2045':{building:'B',row:'07',section:'D',shelf:'2',bin:'2'}
+  };
+  // bc,name,cat,veh,status,price,sku,recv(daysAgo),box,listed(daysAgo|null),moves[{d,from,to,u}]
+  var raw = [
+    ['210200137','Headlight Assembly — Left','lighting','V-1042','Available',129.99,'HON16-HLAMP-L-1042',9,'BX-1187',8,[]],
+    ['210200138','Headlight Assembly — Right','lighting','V-1042','Available',134.99,'HON16-HLAMP-R-1042',9,'BX-1187',8,[]],
+    ['210200145','Side Mirror — Left (Power)','mirror','V-1042','Available',79.5,'HON16-MIRR-L-1042',9,'BX-1188',7,[]],
+    ['210200151','Alternator','engine','V-1042','Sold',95,'HON16-ALT-1042',120,'BX-1190',118,[]],
+    ['210200162','Front Bumper Cover','body','V-1042','Available',189,'HON16-BMPR-F-1042',30,'BX-1201',28,[]],
+    ['210200173','Tail Light — Left','lighting','V-1042','Reserved',64.99,'HON16-TLAMP-L-1042',30,'BX-1188',27,[]],
+    ['210200181','ECU / Engine Control Module','electrical','V-1042','Available',149,'HON16-ECU-1042',30,'BX-2002',25,[]],
+    ['210200190','Driver Door (Complete)','body','V-1042','Available',240,'HON16-DOOR-FL-1042',30,'BX-2010',22,[{d:5,from:'BX-2010',to:'BX-2011',u:'U3'}]],
+    ['210200205','Transmission Assembly (Auto)','drivetrain','V-1038','Available',650,'TOY14-TRANS-1038',95,'BX-2020',90,[]],
+    ['210200212','Radiator','engine','V-1038','Available',88,'TOY14-RAD-1038',95,'BX-2003',92,[]],
+    ['210200221','Steering Wheel (Leather)','interior','V-1038','Available',72,'TOY14-STRW-1038',95,'BX-2003',70,[]],
+    ['210200234','Front Seat — Driver (Power)','interior','V-1038','Available',160,'TOY14-SEAT-FL-1038',95,'BX-2031',80,[]],
+    ['210200245','A/C Compressor','engine','V-1038','Sold',110,'TOY14-ACCOMP-1038',95,'BX-2003',93,[]],
+    ['210200256','Fuel Pump Assembly','engine','V-1038','Available',69.99,'TOY14-FPUMP-1038',95,'BX-2002',60,[]],
+    ['210200267','Windshield (Glass)','glass','V-1038','Scrapped',0,'TOY14-WSHLD-1038',110,null,null,[]],
+    ['210200272','Hood','body','V-1038','Available',175,'TOY14-HOOD-1038',95,'BX-2045',50,[]],
+    ['210200305','Tailgate (Complete)','body','V-1051','Available',420,'FRD18-TGATE-1051',62,'BX-2045',55,[]],
+    ['210200312','Headlight — Right (LED)','lighting','V-1051','Available',210,'FRD18-HLAMP-R-1051',62,'BX-1187',58,[]],
+    ['210200321','Alternator','engine','V-1051','Available',120,'FRD18-ALT-1051',62,'BX-1190',57,[]],
+    ['210200334','Front Bumper Assembly','body','V-1051','Sold',350,'FRD18-BMPR-F-1051',62,'BX-1201',56,[]],
+    ['210200345','Wheel / Rim 18" (Alloy)','wheel','V-1051','Available',130,'FRD18-WHEEL-1051',62,'BX-1210',52,[]],
+    ['210200351','Side Mirror — Right (Tow)','mirror','V-1051','Reserved',145,'FRD18-MIRR-R-1051',62,'BX-1188',50,[]],
+    ['210200362','Tail Light — Right (LED)','lighting','V-1051','Available',165,'FRD18-TLAMP-R-1051',26,'BX-1188',22,[]],
+    ['210200377','Center Console','interior','V-1051','Not Listed',90,'FRD18-CONS-1051',12,'BX-2031',null,[]],
+    ['210200405','Front Strut — Left','suspension','V-1029','Available',58,'CHV13-STRUT-L-1029',155,'BX-1225',140,[]],
+    ['210200412','Front Strut — Right','suspension','V-1029','Available',58,'CHV13-STRUT-R-1029',155,'BX-1225',140,[]],
+    ['210200421','Tailgate','body','V-1029','Available',280,'CHV13-TGATE-1029',155,'BX-2045',120,[]],
+    ['210200433','Starter Motor','engine','V-1029','Sold',65,'CHV13-STRT-1029',155,'BX-1190',150,[]],
+    ['210200444','Door Glass — Front Left','glass','V-1029','Available',45,'CHV13-DGLS-FL-1029',155,'BX-2020',100,[]],
+    ['210200455','Hubcap Set (4)','wheel','V-1029','Scrapped',0,'CHV13-HUBC-1029',160,null,null,[]],
+    ['210200505','Headlight — Left (Halogen)','lighting','V-1063','Available',88,'NIS17-HLAMP-L-1063',42,'BX-1187',38,[]],
+    ['210200512','Catalytic Converter','engine','V-1063','Reserved',230,'NIS17-CAT-1063',42,'BX-2002',35,[]],
+    ['210200521','Rear Bumper Cover','body','V-1063','Not Listed',150,'NIS17-BMPR-R-1063',8,null,null,[]],
+    ['210200534','Ignition Coil Set','electrical','V-1063','Available',42,'NIS17-COIL-1063',42,'BX-2002',30,[]],
+    ['210200605','Xenon Headlight — Left','lighting','V-1057','Sold',320,'BMW15-HLAMP-L-1057',78,'BX-1187',73,[]],
+    ['210200612','Front Grille (M-Sport)','body','V-1057','Available',175,'BMW15-GRILLE-1057',78,'BX-2045',70,[]],
+    ['210200621','Steering Column','interior','V-1057','Not Listed',130,'BMW15-STRC-1057',6,null,null,[]],
+    ['210200705','Tail Light — Left (LED)','lighting','V-1070','Available',195,'JEP19-TLAMP-L-1070',26,'BX-1188',23,[]],
+    ['210200712','Front Door — Right','body','V-1070','Available',260,'JEP19-DOOR-FR-1070',26,'BX-2011',20,[]],
+    ['210200721','Infotainment Screen (8.4")','electrical','V-1070','Sold',410,'JEP19-INFO-1070',26,'BX-2002',23,[]]
+  ];
+  var itemSeq = 385012000100;
+  var parts = raw.map(function(r){
+    var bc=r[0],name=r[1],cat=r[2],veh=r[3],status=r[4],price=r[5],sku=r[6],recv=r[7],box=r[8],listed=r[9],moves=r[10]||[];
+    var recvTs = ago(recv);
+    var hist = [{ts:recvTs,type:'Received',to:'Receiving Dock',user:'U2',note:'Received from donor '+veh}];
+    if(box){ hist.push({ts:recvTs+6*3600000,type:'Placed',from:'Receiving Dock',to:box,loc:boxes[box],user:'U2'}); }
+    if(listed!=null){ hist.push({ts:ago(listed),type:'Listed',user:'U4',note:'Listed on eBay #'+(itemSeq)}); }
+    var curBox=box, curLoc=box?boxes[box]:null;
+    moves.forEach(function(m){ hist.push({ts:ago(m.d),type:'Moved',from:m.from,to:m.to,loc:boxes[m.to],user:m.u}); curBox=m.to; curLoc=boxes[m.to]; });
+    var item = listed!=null ? String(itemSeq++) : null;
+    if(status==='Scrapped'){ hist.push({ts:recvTs+24*3600000,type:'Status',user:'U1',note:'Marked Scrapped — damaged beyond resale'}); }
+    return {barcode:bc,name:name,category:cat,vehicleId:veh,status:status,price:price,
+      ebay:{itemId:item,sku:sku,listed:listed!=null},
+      boxId:curBox,location:curLoc?Object.assign({},curLoc):null,receivedAt:recvTs,soldAt:null,history:hist};
+  });
+  function getP(bc){ for(var i=0;i<parts.length;i++) if(parts[i].barcode===bc) return parts[i]; return null; }
+
+  // orderId,bc,buyer,city,price,sold(daysAgo),status,picker
+  var rawOrders = [
+    ['12-10042-55012','210200151','rmartin_oh','Columbus, OH',95,4,'Shipped','U3'],
+    ['12-10043-55021','210200245','jdeals2017','Tampa, FL',110,9,'Shipped','U5'],
+    ['12-10051-55044','210200334','trucknation','Dallas, TX',350,1,'Awaiting Pick',null],
+    ['12-10049-55039','210200433','mike_g_az','Phoenix, AZ',65,2,'Picked','U3'],
+    ['12-10057-55066','210200605','eurospares_nj','Newark, NJ',320,0,'Awaiting Pick',null],
+    ['12-10070-55078','210200721','offroad_kc','Kansas City, MO',410,3,'Shipped','U5']
+  ];
+  var orders = rawOrders.map(function(o){
+    var part=getP(o[1]); var soldTs=ago(o[5]);
+    if(part){
+      part.status='Sold'; part.soldAt=soldTs;
+      part.history.push({ts:soldTs,type:'Sold',user:'U4',note:'Sold on eBay · order '+o[0]+' · '+money(o[4])});
+      if(o[6]==='Picked'||o[6]==='Shipped') part.history.push({ts:soldTs+8*3600000,type:'Picked',from:part.boxId,user:o[7]||'U3',note:'Picked for shipment'});
+      if(o[6]==='Shipped') part.history.push({ts:soldTs+30*3600000,type:'Shipped',user:o[7]||'U3',note:'Shipped to buyer'});
+    }
+    return {orderId:o[0],barcode:o[1],partName:part?part.name:o[1],buyer:o[2],city:o[3],price:o[4],
+      soldAt:soldTs,status:o[6],picker:o[7],location:part&&part.location?Object.assign({},part.location):null,boxId:part?part.boxId:null};
+  });
+
+  var users = [
+    {id:'U1',name:'Alex Morgan',role:'Administrator',init:'AM'},
+    {id:'U2',name:'Jordan Lee',role:'Warehouse',init:'JL'},
+    {id:'U3',name:'Sam Rivera',role:'Warehouse',init:'SR'},
+    {id:'U4',name:'Taylor Brooks',role:'Office / Listings',init:'TB'},
+    {id:'U5',name:'Casey Nguyen',role:'Warehouse',init:'CN'}
+  ];
+  var requests = [
+    {id:'RR-204',barcode:'210200205',partName:'Transmission Assembly (Auto)',reason:'Buyer asked for a photo of the bell housing / casting numbers.',status:'In Progress',assignedTo:'U3',createdAt:ago(1),by:'U4'},
+    {id:'RR-205',barcode:'210200612',partName:'Front Grille (M-Sport)',reason:'Verify the molded part number for a customer inquiry.',status:'Open',assignedTo:null,createdAt:ago(0.12),by:'U4'}
+  ];
+
+  // backups: nightly auto, retention 30d; one failure 5 days ago
+  var backups=[];
+  for(var d=12; d>=0; d--){
+    var ok = d!==5;
+    backups.push({ts:ago(d)- (ago(d)%DAY) + 2*3600000, type:'Auto', status:ok?'Success':'Failed', size: ok?(1.1+ (d%4)*0.05).toFixed(2)+' GB':'—', dest:'NAS · Offsite (S3)'});
+  }
+  backups.push({ts:ago(0.25),type:'Manual',status:'Success',size:'1.24 GB',dest:'NAS · Offsite (S3)'});
+  backups.sort(function(a,b){return b.ts-a.ts;});
+
+  // build activity log from all part histories
+  var activity=[];
+  parts.forEach(function(p){ p.history.forEach(function(h){ activity.push({ts:h.ts,user:h.user,type:h.type,barcode:p.barcode,partName:p.name,detail:historyText(h)}); }); });
+  activity.sort(function(a,b){return b.ts-a.ts;});
+
+  var listings = parts.filter(function(p){return p.ebay.listed && (p.status==='Available'||p.status==='Reserved');}).length;
+  return {parts:parts,boxes:boxes,vehicles:vehicles,orders:orders,users:users,requests:requests,backups:backups,activity:activity,
+    currentUser:'U1', ebay:{connected:true,account:'autopartsdirect_us',lastSync:ago(0.015),listings:listings},
+    reqSeq:206, seededAt:NOW, version:1};
+}
+
+/* ---------- DB layer (localStorage) ---------- */
+var DB;
+function load(){
+  try{ var s=localStorage.getItem(KEY); if(s){ DB=JSON.parse(s); return; } }catch(e){}
+  DB=seedData(); save();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){} }
+function resetDemo(){ try{ localStorage.removeItem(KEY); }catch(e){} DB=seedData(); save(); }
+
+/* ---------- derived helpers ---------- */
+function getPart(bc){ bc=String(bc||'').trim(); for(var i=0;i<DB.parts.length;i++) if(DB.parts[i].barcode===bc) return DB.parts[i]; return null; }
+function getBoxLoc(id){ return DB.boxes[String(id||'').trim()]||null; }
+function getVeh(id){ for(var i=0;i<DB.vehicles.length;i++) if(DB.vehicles[i].id===id) return DB.vehicles[i]; return null; }
+function getUser(id){ for(var i=0;i<DB.users.length;i++) if(DB.users[i].id===id) return DB.users[i]; return {name:'System',init:'··',role:''}; }
+function curUser(){ return getUser(DB.currentUser); }
+function fitment(p){ var v=getVeh(p.vehicleId); return v?(v.year+' '+v.make+' '+v.model):'—'; }
+
+function locStr(loc){ if(!loc) return 'Unassigned'; return 'Bldg '+loc.building+' · Row '+loc.row+' · Sec '+loc.section+' · Shelf '+loc.shelf+' · Bin '+loc.bin; }
+function locShort(loc){ if(!loc) return '—'; return loc.building+'-'+loc.row+'-'+loc.section+loc.shelf+'-'+loc.bin; }
+function statusKey(s){ return 's-'+s.toLowerCase().replace(/[^a-z]/g,''); }
+function statusBadge(s){
+  var map={'Available':'b-available','Sold':'b-sold','Reserved':'b-reserved','Scrapped':'b-scrapped','Not Listed':'b-notlisted'};
+  return '<span class="badge '+(map[s]||'b-scrapped')+'"><span class="d"></span>'+esc(s)+'</span>';
+}
+function reqBadge(s){ var m={'Open':'b-open','In Progress':'b-inprogress','Completed':'b-completed'}; return '<span class="badge '+(m[s]||'b-open')+'">'+esc(s)+'</span>'; }
+function orderBadge(s){ var m={'Awaiting Pick':'b-awaitingpick','Picked':'b-picked','Shipped':'b-shipped'}; return '<span class="badge '+(m[s]||'')+'">'+esc(s)+'</span>'; }
+
+function historyText(h){
+  switch(h.type){
+    case 'Received': return 'Received to '+(h.to||'Receiving Dock');
+    case 'Placed': return 'Placed in '+h.to+' · '+locShort(h.loc);
+    case 'Moved': return 'Moved '+h.from+' → '+h.to+' · '+locShort(h.loc);
+    case 'Picked': return 'Picked'+(h.from?(' from '+h.from):'')+' for order';
+    case 'Shipped': return 'Shipped to buyer';
+    default: return h.note||h.type;
+  }
+}
+var TLMETA={Received:{c:'#2563eb',i:'receive'},Placed:{c:'#16a34a',i:'pin'},Moved:{c:'#d97706',i:'move'},Listed:{c:'#7c3aed',i:'tag'},Sold:{c:'#2563eb',i:'dollar'},Picked:{c:'#0891b2',i:'box'},Shipped:{c:'#16a34a',i:'truck'},Status:{c:'#64748b',i:'alert'},Reserved:{c:'#d97706',i:'clock'}};
+
+function avatar(uId,cls){ var u=getUser(uId); return '<span class="avatar '+(cls||'')+'">'+u.init+'</span>'; }
+
+/* sample barcodes used for the demo "tap to scan" chips */
+function sampleParts(n){ return DB.parts.slice(0,40).map(function(p){return p.barcode;}); }
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+var UI = { invQuery:'', invStatus:'all', invVeh:'all', invSort:'recent', receive:{part:null}, move:{part:null}, locate:null };
+
+function viewDashboard(){
+  var counts={Available:0,Sold:0,Reserved:0,Scrapped:0,'Not Listed':0};
+  DB.parts.forEach(function(p){ counts[p.status]=(counts[p.status]||0)+1; });
+  var value=DB.parts.filter(inStock).reduce(function(a,p){return a+p.price;},0);
+  var soldMonth=DB.orders.filter(function(o){return daysIn(o.soldAt)<=30;});
+  var revenue=soldMonth.reduce(function(a,o){return a+o.price;},0);
+  var aging=agingBuckets();
+  var aged90=aging[3].value;
+  var awaiting=DB.orders.filter(function(o){return o.status==='Awaiting Pick';}).length;
+
+  var donutSegs=[
+    {label:'Available',value:counts.Available,color:'#16a34a'},
+    {label:'Reserved',value:counts.Reserved,color:'#d97706'},
+    {label:'Not Listed',value:counts['Not Listed'],color:'#7c3aed'},
+    {label:'Sold',value:counts.Sold,color:'#2563eb'},
+    {label:'Scrapped',value:counts.Scrapped,color:'#94a3b8'}
+  ];
+
+  function stat(ico,col,bg,v,l,sm){
+    return '<div class="stat"><div class="ico" style="background:'+bg+';color:'+col+'">'+svg(ico)+'</div>'+
+      '<div class="v">'+v+'</div><div class="l">'+l+'</div>'+(sm||'')+'</div>';
+  }
+
+  return ''+
+  '<div class="page-head"><div><h1>Warehouse Dashboard</h1><p>'+fmtDate(NOW)+' · '+DB.parts.length+' parts across 2 buildings</p></div>'+
+    '<div class="row"><a class="btn btn-ghost" href="#/receive">'+svg('receive')+'Receive</a><a class="btn btn-primary" href="#/locate">'+svg('scan')+'Scan to Locate</a></div></div>'+
+
+  '<div class="note" style="margin-bottom:18px">'+svg('alert')+'<div><b>Interactive prototype.</b> All data is sample data generated in your browser — put-away, move and pick actions persist locally (no live eBay or database). This demonstrates the workflow, screens and data model proposed for the build. <span class="lk" data-action="reset">Reset demo data</span>.</div></div>'+
+
+  '<div class="stats" style="margin-bottom:16px">'+
+    stat('layers','#2563eb','var(--brand-soft)',DB.parts.length,'Total parts tracked')+
+    stat('check','#16a34a','var(--ok-soft)',counts.Available,'Available to sell')+
+    stat('clock','#d97706','var(--warn-soft)',counts.Reserved+counts['Not Listed'],'Reserved / not listed')+
+    stat('tag','#1d4ed8','var(--brand-soft)',soldMonth.length,'Sold (30 days)','<div class="sm" style="color:var(--ok)">'+money(revenue)+' revenue</div>')+
+    stat('alert','#dc2626','var(--danger-soft)',aged90,'Aging > 90 days','<div class="sm" style="color:var(--danger)">needs review</div>')+
+    stat('dollar','#0f766e','#ccfbf1',money(value),'On-hand inventory value')+
+  '</div>'+
+
+  '<div class="grid" style="grid-template-columns:1.15fr 1fr">'+
+    '<div class="card"><div class="card-h"><h3>Inventory by status</h3><span class="sub">'+DB.parts.length+' parts</span></div>'+
+      '<div class="card pad" style="border:none;box-shadow:none;display:flex;gap:26px;align-items:center;flex-wrap:wrap">'+
+        donut(donutSegs)+
+        '<div class="legend" style="flex:1;min-width:160px">'+donutSegs.map(function(s){return '<div class="li"><span class="sw" style="background:'+s.color+'"></span>'+s.label+'<span class="n">'+s.value+'</span></div>';}).join('')+'</div>'+
+      '</div></div>'+
+
+    '<div class="card"><div class="card-h"><h3>Inventory aging</h3><span class="sub">in-stock parts</span></div><div class="card pad" style="border:none;box-shadow:none">'+
+      bars([
+        {label:'0–30 d',value:aging[0].value,color:'#16a34a'},
+        {label:'31–60 d',value:aging[1].value,color:'#84cc16'},
+        {label:'61–90 d',value:aging[2].value,color:'#f59e0b'},
+        {label:'90+ d',value:aging[3].value,color:'#dc2626'}
+      ])+
+      '<div class="note amber" style="margin-top:6px">'+svg('alert')+'<div>'+aged90+' parts have been on the shelf over 90 days — candidates for repricing or scrap review.</div></div>'+
+    '</div></div>'+
+  '</div>'+
+
+  '<div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">'+
+    // eBay + backup health
+    '<div class="card"><div class="card-h"><h3>Integrations &amp; data health</h3><a class="sub lk" href="#/settings">Settings</a></div><div class="card pad" style="border:none;box-shadow:none;display:grid;gap:12px">'+
+      '<div class="row" style="justify-content:space-between"><div class="row" style="gap:9px">'+svg('sync','')+'<div><b style="font-size:13.5px">eBay — '+esc(DB.ebay.account)+'</b><div class="muted" style="font-size:12px">'+DB.ebay.listings+' active listings synced · last sync '+relTime(DB.ebay.lastSync)+'</div></div></div><span class="badge b-available"><span class="d"></span>Connected</span></div>'+
+      '<div class="row" style="justify-content:space-between"><div class="row" style="gap:9px">'+svg('save','')+'<div><b style="font-size:13.5px">Nightly backup</b><div class="muted" style="font-size:12px">Last: '+fmtDT(DB.backups[0].ts)+' · 30-day retention</div></div></div>'+(DB.backups[0].status==='Success'?'<span class="badge b-available"><span class="d"></span>Healthy</span>':'<span class="badge b-reserved">Check</span>')+'</div>'+
+      '<div class="row" style="justify-content:space-between"><div class="row" style="gap:9px">'+svg('truck','')+'<div><b style="font-size:13.5px">Orders awaiting pick</b><div class="muted" style="font-size:12px">imported from eBay, ready to pull</div></div></div><a class="btn btn-soft btn-sm" href="#/orders">'+awaiting+' to pick →</a></div>'+
+    '</div></div>'+
+
+    // recent activity
+    '<div class="card"><div class="card-h"><h3>Recent activity</h3><a class="sub lk" href="#/reports">All activity</a></div><div class="card pad activity" style="border:none;box-shadow:none">'+
+      DB.activity.slice(0,7).map(function(a){
+        return '<div class="a">'+avatar(a.user)+'<div class="txt"><b>'+esc(getUser(a.user).name)+'</b> '+esc(a.detail)+' <span class="lk" data-action="locate-go" data-code="'+a.barcode+'">#'+a.barcode+'</span><div class="t">'+esc(a.partName)+' · '+relTime(a.ts)+'</div></div></div>';
+      }).join('')+
+    '</div></div>'+
+  '</div>';
+}
+
+function agingBuckets(){
+  var b=[{value:0},{value:0},{value:0},{value:0}];
+  DB.parts.filter(inStock).forEach(function(p){
+    var d=daysIn(p.receivedAt);
+    if(d<=30)b[0].value++; else if(d<=60)b[1].value++; else if(d<=90)b[2].value++; else b[3].value++;
+  });
+  return b;
+}
+function donut(segs){
+  var total=segs.reduce(function(a,s){return a+s.value;},0)||1; var acc=0; var stops=[];
+  segs.forEach(function(s){ var st=acc/total*100; acc+=s.value; var en=acc/total*100; stops.push(s.color+' '+st+'% '+en+'%'); });
+  return '<div class="donut" style="background:conic-gradient('+stops.join(',')+')"><div class="donut-hole"><b>'+total+'</b><span>parts</span></div></div>';
+}
+function bars(items){
+  var max=Math.max.apply(null,items.map(function(i){return i.value;}).concat([1]));
+  return items.map(function(i){ return '<div class="bar-row"><span class="bar-label">'+i.label+'</span><div class="bar-track"><div class="bar-fill" style="width:'+(i.value/max*100)+'%;background:'+i.color+'"></div></div><span class="bar-val">'+i.value+'</span></div>'; }).join('');
+}
+
+/* ---------- Scan to Locate ---------- */
+function viewLocate(){
+  var chips=['210200137','210200205','210200334','210200605','BX-1187'];
+  var out='';
+  if(UI.locate){
+    if(UI.locate.box){ out=boxResult(UI.locate.box); }
+    else if(UI.locate.part){ out=partDetail(UI.locate.part); }
+    else { out='<div class="note amber" style="margin-top:18px">'+svg('alert')+'<div>No part or box found for <b class="mono">'+esc(UI.locate.miss)+'</b>. Try one of the sample barcodes above.</div></div>'; }
+  }
+  return ''+
+  '<div class="page-head"><div><h1>Scan to Locate</h1><p>Scan a part barcode to pull its location, status and full movement history.</p></div></div>'+
+  '<div class="scanbox"><div style="font-weight:700;font-size:15px;margin-bottom:4px">Scan or enter a barcode</div>'+
+    '<div class="muted" style="font-size:12.5px;margin-bottom:14px">Your barcode scanner types the code and presses Enter — exactly like this field.</div>'+
+    '<div class="scan-input"><input data-scan="locate" type="text" inputmode="text" autocomplete="off" placeholder="2102xxxxx" value=""><button class="btn btn-primary" data-action="scan">'+svg('scan')+'Look up</button></div>'+
+    '<div class="chips">'+chips.map(function(c){return '<button class="chip" data-action="scan" data-code="'+c+'">'+c+'</button>';}).join('')+'</div>'+
+  '</div>'+ out;
+}
+function partDetail(p){
+  var v=getVeh(p.vehicleId);
+  var sold=p.soldAt; var dLabel = sold? ('Sold in '+daysIn2(p.receivedAt,sold)+' days') : (daysIn(p.receivedAt)+' days in inventory');
+  var hist=p.history.slice().sort(function(a,b){return b.ts-a.ts;});
+  return ''+
+  '<div class="card pad" style="margin-top:18px"><div class="detail">'+
+    '<div>'+partPhoto(p,'lg')+
+      '<div class="note plain" style="margin-top:12px;font-size:11.5px">'+svg('cam')+'<div>One primary photo per part, synced from the eBay listing in a live build.</div></div>'+
+    '</div>'+
+    '<div>'+
+      '<div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">'+esc(p.name)+'</div><div class="muted" style="font-size:13px;margin-top:2px">'+esc(fitment(p))+' · '+esc(p.category)+'</div></div>'+statusBadge(p.status)+'</div>'+
+      '<div class="locline">'+svg('pin')+
+        (p.location?
+          '<span class="seg"><small>Box</small>'+p.boxId+'</span><span class="seg"><small>Building</small>'+p.location.building+'</span><span class="seg"><small>Row</small>'+p.location.row+'</span><span class="seg"><small>Section</small>'+p.location.section+'</span><span class="seg"><small>Shelf</small>'+p.location.shelf+'</span><span class="seg"><small>Bin</small>'+p.location.bin+'</span>'
+          :'<span class="muted">No warehouse location assigned</span>')+
+      '</div>'+
+      '<div class="spec" style="margin-top:16px">'+
+        '<div class="c"><div class="k">Part barcode</div><div class="val mono">'+p.barcode+'</div></div>'+
+        '<div class="c"><div class="k">Price</div><div class="val">'+money(p.price)+'</div></div>'+
+        '<div class="c"><div class="k">Days in inventory</div><div class="val">'+dLabel+'</div></div>'+
+        '<div class="c"><div class="k">eBay item ID</div><div class="val mono">'+(p.ebay.itemId||'—')+'</div></div>'+
+        '<div class="c"><div class="k">SKU</div><div class="val mono" style="font-size:12px">'+esc(p.ebay.sku||'—')+'</div></div>'+
+        '<div class="c"><div class="k">Donor vehicle</div><div class="val" style="font-size:12.5px">'+esc(p.vehicleId)+(v?' · '+esc(v.vin):'')+'</div></div>'+
+      '</div>'+
+      '<div class="row" style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="#/move" data-action="prep-move" data-code="'+p.barcode+'">'+svg('move')+'Move part</a>'+
+        '<button class="btn btn-ghost btn-sm" data-action="new-request" data-code="'+p.barcode+'">'+svg('flag')+'Retrieval request</button>'+
+        '<div class="field" style="margin:0 0 0 auto;min-width:170px"><select class="select" data-action="set-status" data-code="'+p.barcode+'">'+
+          ['Available','Reserved','Sold','Not Listed','Scrapped'].map(function(s){return '<option'+(s===p.status?' selected':'')+'>'+s+'</option>';}).join('')+'</select></div>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  '<div style="margin-top:22px"><div class="card-h" style="padding:0 0 14px;border:none"><h3>Complete movement history</h3><span class="sub">'+hist.length+' events · most recent first</span></div>'+
+    '<div class="timeline">'+hist.map(function(h){ var m=TLMETA[h.type]||{c:'#64748b',i:'box'};
+      return '<div class="tl"><span class="dot" style="background:'+m.c+'">'+svg(m.i)+'</span><div class="body"><b>'+esc(historyText(h))+'</b><div class="meta">by <b>'+esc(getUser(h.user).name)+'</b> · '+fmtDT(h.ts)+' · '+relTime(h.ts)+'</div></div></div>';
+    }).join('')+'</div>'+
+  '</div></div>';
+}
+function daysIn2(a,b){ return Math.max(0, Math.floor((b-a)/DAY)); }
+function boxResult(boxId){
+  var loc=getBoxLoc(boxId);
+  var contents=DB.parts.filter(function(p){return p.boxId===boxId && inStock(p);});
+  return '<div class="card" style="margin-top:18px"><div class="card-h"><h3>Storage box '+esc(boxId)+'</h3><span class="sub">'+locStr(loc)+'</span></div>'+
+    '<div class="note plain" style="margin:14px 18px">'+svg('box')+'<div>You scanned a <b>storage box</b>. '+contents.length+' in-stock part(s) are recorded in this box.</div></div>'+
+    (contents.length?'<div class="table-wrap"><table><thead><tr><th>Part</th><th>Barcode</th><th>Status</th><th>Price</th><th></th></tr></thead><tbody>'+
+      contents.map(function(p){return '<tr><td><div class="row" style="gap:10px;flex-wrap:nowrap">'+partPhoto(p,'sm')+'<span class="pname">'+esc(p.name)+'</span></div></td><td class="mono">'+p.barcode+'</td><td>'+statusBadge(p.status)+'</td><td>'+money(p.price)+'</td><td><button class="lk" data-action="locate-go" data-code="'+p.barcode+'">View</button></td></tr>';}).join('')+
+    '</tbody></table></div>':'<div class="empty">'+svg('box')+'<b>Box is empty</b>No in-stock parts recorded here.</div>')+'</div>';
+}
+
+/* ---------- Receive / Put-away ---------- */
+function viewReceive(){
+  var p=UI.receive.part?getPart(UI.receive.part):null;
+  var awaiting=DB.parts.filter(function(x){return !x.location && x.status==='Not Listed';});
+  var step = !p?1:2;
+  return ''+
+  '<div class="page-head"><div><h1>Receive &amp; Put-away</h1><p>Scan a part, scan the storage box, confirm. Location, time and employee are recorded automatically.</p></div></div>'+
+  '<div class="steps">'+
+    '<div class="step '+(step===1?'active':'done')+'"><span class="n">'+(step>1?'✓':'1')+'</span>Scan part</div>'+
+    '<div class="step '+(step===2?'active':'')+'"><span class="n">2</span>Scan storage box</div>'+
+    '<div class="step"><span class="n">3</span>Place</div>'+
+  '</div>'+
+  (!p?
+    '<div class="scanbox"><div style="font-weight:700;font-size:15px;margin-bottom:12px">Step 1 — scan the part barcode</div>'+
+      '<div class="scan-input"><input data-scan="receive" type="text" autocomplete="off" placeholder="2102xxxxx"><button class="btn btn-primary" data-action="scan">'+svg('scan')+'Find part</button></div>'+
+      (awaiting.length?'<div class="scan-hint">Awaiting put-away — tap to load:</div><div class="chips">'+awaiting.map(function(x){return '<button class="chip" data-action="scan" data-code="'+x.barcode+'">'+x.barcode+'</button>';}).join('')+'</div>':'<div class="scan-hint">No parts are waiting for put-away. Scan any barcode to place it.</div>')+
+    '</div>'
+  :
+    '<div class="card pad armed-wrap"><div class="row" style="gap:14px;flex-wrap:nowrap;align-items:flex-start">'+partPhoto(p,'sm')+
+      '<div style="flex:1"><div class="row" style="justify-content:space-between"><div><b style="font-size:15px">'+esc(p.name)+'</b><div class="muted" style="font-size:12.5px">'+p.barcode+' · '+esc(fitment(p))+'</div></div>'+statusBadge(p.status)+'</div>'+
+      '<div class="muted" style="font-size:12.5px;margin-top:6px">Current location: '+(p.location?locShort(p.location):'<b>Unassigned — ready to put away</b>')+'</div></div>'+
+      '<button class="btn btn-ghost btn-sm" data-action="receive-cancel">'+svg('x')+'Change</button>'+
+    '</div>'+
+    '<div class="scanbox armed" style="margin-top:18px"><div style="font-weight:700;font-size:15px;margin-bottom:12px">Step 2 — scan the storage box</div>'+
+      '<div class="scan-input"><input data-scan="receive" type="text" autocomplete="off" placeholder="BX-xxxx"><button class="btn btn-primary" data-action="scan">'+svg('check')+'Place</button></div>'+
+      '<div class="scan-hint">Tap a box to simulate the scan:</div><div class="chips">'+Object.keys(DB.boxes).slice(0,6).map(function(b){return '<button class="chip" data-action="scan" data-code="'+b+'">'+b+'</button>';}).join('')+'</div>'+
+    '</div></div>'
+  )+
+  '<div class="note" style="margin-top:18px">'+svg('alert')+'<div>Every put-away writes an immutable history row (part, box, full location, timestamp, employee). In a live build this also pushes the quantity to eBay so the listing can never oversell.</div></div>';
+}
+
+/* ---------- Move ---------- */
+function viewMove(){
+  var p=UI.move.part?getPart(UI.move.part):null;
+  var step=!p?1:2;
+  var movable=DB.parts.filter(function(x){return x.location && inStock(x);}).slice(0,6);
+  return ''+
+  '<div class="page-head"><div><h1>Move Inventory</h1><p>Relocate a part between boxes or locations — the move is added to the part\'s audit trail.</p></div></div>'+
+  '<div class="steps">'+
+    '<div class="step '+(step===1?'active':'done')+'"><span class="n">'+(step>1?'✓':'1')+'</span>Scan part</div>'+
+    '<div class="step '+(step===2?'active':'')+'"><span class="n">2</span>Scan destination box</div>'+
+    '<div class="step"><span class="n">3</span>Confirm move</div>'+
+  '</div>'+
+  (!p?
+    '<div class="scanbox"><div style="font-weight:700;font-size:15px;margin-bottom:12px">Step 1 — scan the part to move</div>'+
+      '<div class="scan-input"><input data-scan="move" type="text" autocomplete="off" placeholder="2102xxxxx"><button class="btn btn-primary" data-action="scan">'+svg('scan')+'Find part</button></div>'+
+      '<div class="scan-hint">Tap a part to load:</div><div class="chips">'+movable.map(function(x){return '<button class="chip" data-action="scan" data-code="'+x.barcode+'">'+x.barcode+'</button>';}).join('')+'</div>'+
+    '</div>'
+  :
+    '<div class="card pad"><div class="row" style="gap:14px;flex-wrap:nowrap;align-items:flex-start">'+partPhoto(p,'sm')+
+      '<div style="flex:1"><b style="font-size:15px">'+esc(p.name)+'</b><div class="muted" style="font-size:12.5px">'+p.barcode+' · '+esc(fitment(p))+'</div>'+
+      '<div class="locline" style="margin-top:8px"><span class="muted" style="font-size:12px">From</span><span class="seg">'+p.boxId+' · '+locShort(p.location)+'</span></div></div>'+
+      '<button class="btn btn-ghost btn-sm" data-action="move-cancel">'+svg('x')+'Change</button>'+
+    '</div>'+
+    '<div class="scanbox armed" style="margin-top:18px"><div style="font-weight:700;font-size:15px;margin-bottom:12px">Step 2 — scan the destination box</div>'+
+      '<div class="scan-input"><input data-scan="move" type="text" autocomplete="off" placeholder="BX-xxxx"><button class="btn btn-primary" data-action="scan">'+svg('move')+'Move here</button></div>'+
+      '<div class="chips">'+Object.keys(DB.boxes).slice(0,7).map(function(b){return '<button class="chip" data-action="scan" data-code="'+b+'">'+b+'</button>';}).join('')+'</div>'+
+    '</div></div>'
+  );
+}
+
+/* ---------- Inventory ---------- */
+function filteredParts(){
+  var q=UI.invQuery.toLowerCase().trim();
+  var arr=DB.parts.filter(function(p){
+    if(UI.invStatus!=='all' && p.status!==UI.invStatus) return false;
+    if(UI.invVeh!=='all' && p.vehicleId!==UI.invVeh) return false;
+    if(q){
+      var hay=(p.barcode+' '+p.name+' '+fitment(p)+' '+(p.ebay.sku||'')+' '+(p.ebay.itemId||'')+' '+locShort(p.location)).toLowerCase();
+      if(hay.indexOf(q)<0) return false;
+    }
+    return true;
+  });
+  arr.sort(function(a,b){
+    if(UI.invSort==='age') return a.receivedAt-b.receivedAt;
+    if(UI.invSort==='price') return b.price-a.price;
+    if(UI.invSort==='name') return a.name.localeCompare(b.name);
+    return b.receivedAt-a.receivedAt;
+  });
+  return arr;
+}
+function invRows(){
+  var arr=filteredParts();
+  if(!arr.length) return '<tr><td colspan="7"><div class="empty">'+svg('list')+'<b>No parts match</b>Try clearing the filters or search.</div></td></tr>';
+  return arr.map(function(p){
+    return '<tr>'+
+      '<td><div class="row" style="gap:10px;flex-wrap:nowrap">'+partPhoto(p,'sm')+'<div><div class="pname">'+esc(p.name)+'</div><div class="muted" style="font-size:11.5px">'+esc(fitment(p))+'</div></div></div></td>'+
+      '<td class="mono nowrap">'+p.barcode+'</td>'+
+      '<td>'+statusBadge(p.status)+'</td>'+
+      '<td class="nowrap">'+(p.location?'<span class="mono">'+locShort(p.location)+'</span>':'<span class="muted">—</span>')+'</td>'+
+      '<td class="nowrap">'+(inStock(p)?daysIn(p.receivedAt)+' d':'—')+'</td>'+
+      '<td class="nowrap">'+money(p.price)+'</td>'+
+      '<td><button class="lk" data-action="locate-go" data-code="'+p.barcode+'">View</button></td>'+
+    '</tr>';
+  }).join('');
+}
+function viewInventory(){
+  var vehOpts='<option value="all">All vehicles</option>'+DB.vehicles.map(function(v){return '<option value="'+v.id+'"'+(UI.invVeh===v.id?' selected':'')+'>'+v.year+' '+esc(v.make)+' '+esc(v.model)+'</option>';}).join('');
+  var statuses=['all','Available','Reserved','Sold','Not Listed','Scrapped'];
+  return ''+
+  '<div class="page-head"><div><h1>Inventory</h1><p id="inv-count">'+filteredParts().length+' of '+DB.parts.length+' parts</p></div>'+
+    '<button class="btn btn-ghost" data-action="export" data-report="inventory">'+svg('download')+'Export CSV</button></div>'+
+  '<div class="card pad" style="margin-bottom:14px"><div class="row" style="gap:10px">'+
+    '<div class="search" style="max-width:none;flex:2;min-width:200px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg><input data-search="inv" type="text" placeholder="Search name, barcode, SKU, location…" value="'+esc(UI.invQuery)+'"></div>'+
+    '<select class="select" data-filter="invStatus" style="flex:1;min-width:140px">'+statuses.map(function(s){return '<option value="'+s+'"'+(UI.invStatus===s?' selected':'')+'>'+(s==='all'?'All statuses':s)+'</option>';}).join('')+'</select>'+
+    '<select class="select" data-filter="invVeh" style="flex:1;min-width:150px">'+vehOpts+'</select>'+
+    '<select class="select" data-filter="invSort" style="flex:1;min-width:140px">'+[['recent','Newest first'],['age','Oldest first'],['price','Highest price'],['name','Name A–Z']].map(function(o){return '<option value="'+o[0]+'"'+(UI.invSort===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'+
+  '</div></div>'+
+  '<div class="card"><div class="table-wrap"><table><thead><tr><th>Part</th><th>Barcode</th><th>Status</th><th>Location</th><th>Age</th><th>Price</th><th></th></tr></thead><tbody id="inv-tbody">'+invRows()+'</tbody></table></div></div>';
+}
+
+/* ---------- eBay Orders ---------- */
+function viewOrders(){
+  var awaiting=DB.orders.filter(function(o){return o.status==='Awaiting Pick';});
+  var rows=DB.orders.slice().sort(function(a,b){return b.soldAt-a.soldAt;});
+  return ''+
+  '<div class="page-head"><div><h1>eBay Orders &amp; Pick List</h1><p>'+awaiting.length+' awaiting pick · imported from eBay</p></div>'+
+    '<div class="row"><button class="btn btn-ghost" data-action="export" data-report="orders">'+svg('download')+'Export CSV</button><button class="btn btn-primary" data-action="sync-ebay">'+svg('sync')+'Sync eBay now</button></div></div>'+
+  '<div class="note" style="margin-bottom:16px">'+svg('alert')+'<div>Sold orders import automatically over the eBay <b>Fulfillment API</b>; the matching part is flagged <b>Sold</b> and its quantity decremented so the listing can\'t oversell. Warehouse staff pick straight from the location shown below.</div></div>'+
+  '<div class="card"><div class="table-wrap"><table><thead><tr><th>Order / Item</th><th>Part</th><th>Buyer</th><th>Pick location</th><th>Price</th><th>Sold</th><th>Status</th><th></th></tr></thead><tbody>'+
+    rows.map(function(o){
+      var act = o.status==='Awaiting Pick' ? '<button class="btn btn-soft btn-sm" data-action="pick" data-order="'+o.orderId+'">'+svg('box')+'Pick</button>'
+              : o.status==='Picked' ? '<button class="btn btn-soft btn-sm" data-action="ship" data-order="'+o.orderId+'">'+svg('truck')+'Ship</button>'
+              : '<span class="muted" style="font-size:12px">'+svg('check')+'</span>';
+      return '<tr><td><div class="pname mono" style="font-size:12px">'+o.orderId+'</div><div class="muted mono" style="font-size:11px">#'+(getPart(o.barcode)?(getPart(o.barcode).ebay.itemId||'—'):'—')+'</div></td>'+
+        '<td><span class="lk" data-action="locate-go" data-code="'+o.barcode+'">'+esc(o.partName)+'</span><div class="muted mono" style="font-size:11px">'+o.barcode+'</div></td>'+
+        '<td>'+esc(o.buyer)+'<div class="muted" style="font-size:11.5px">'+esc(o.city)+'</div></td>'+
+        '<td>'+(o.location?'<span class="mono">'+o.boxId+' · '+locShort(o.location)+'</span>':'<span class="muted">—</span>')+'</td>'+
+        '<td class="nowrap">'+money(o.price)+'</td><td class="nowrap">'+relTime(o.soldAt)+'</td><td>'+orderBadge(o.status)+'</td><td>'+act+'</td></tr>';
+    }).join('')+
+  '</tbody></table></div></div>';
+}
+
+/* ---------- Reports ---------- */
+function viewReports(){
+  var aging=agingBuckets();
+  var inStockParts=DB.parts.filter(inStock);
+  var oldest=inStockParts.slice().sort(function(a,b){return a.receivedAt-b.receivedAt;}).slice(0,6);
+  var moves30=DB.activity.filter(function(a){return (a.type==='Moved'||a.type==='Placed') && daysIn(a.ts)<=30;});
+  var sold=DB.orders;
+  var revenue=sold.reduce(function(a,o){return a+o.price;},0);
+  var avgSell=DB.parts.filter(function(p){return p.soldAt;});
+  var avgDays=avgSell.length?Math.round(avgSell.reduce(function(a,p){return a+daysIn2(p.receivedAt,p.soldAt);},0)/avgSell.length):0;
+  // per-user activity
+  var byUser={};
+  DB.activity.forEach(function(a){ byUser[a.user]=byUser[a.user]||{Placed:0,Moved:0,Picked:0,Shipped:0,total:0}; if(byUser[a.user][a.type]!=null)byUser[a.user][a.type]++; byUser[a.user].total++; });
+
+  function sec(title,sub,report,body){
+    return '<div class="card" style="margin-top:16px"><div class="card-h"><div><h3>'+title+'</h3><div class="sub">'+sub+'</div></div><button class="btn btn-ghost btn-sm" data-action="export" data-report="'+report+'">'+svg('download')+'CSV</button></div>'+body+'</div>';
+  }
+  return ''+
+  '<div class="page-head"><div><h1>Reports</h1><p>Inventory aging, movement, sales &amp; fulfillment, and employee activity.</p></div></div>'+
+
+  sec('Inventory aging','In-stock parts by time on shelf','aging',
+    '<div class="card pad" style="border:none;box-shadow:none;display:grid;grid-template-columns:1fr 1fr;gap:26px">'+
+      '<div>'+bars([{label:'0–30 d',value:aging[0].value,color:'#16a34a'},{label:'31–60 d',value:aging[1].value,color:'#84cc16'},{label:'61–90 d',value:aging[2].value,color:'#f59e0b'},{label:'90+ d',value:aging[3].value,color:'#dc2626'}])+'</div>'+
+      '<div><div class="k" style="font-size:11px;color:var(--faint);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Oldest in-stock parts</div>'+
+        oldest.map(function(p){return '<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-2)"><span class="lk" data-action="locate-go" data-code="'+p.barcode+'" style="font-size:12.5px">'+esc(p.name)+'</span><b style="font-size:12.5px">'+daysIn(p.receivedAt)+' d</b></div>';}).join('')+
+      '</div>'+
+    '</div>')+
+
+  '<div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">'+
+    '<div class="card"><div class="card-h"><div><h3>Sales &amp; fulfillment</h3><div class="sub">all imported eBay orders</div></div><button class="btn btn-ghost btn-sm" data-action="export" data-report="orders">'+svg('download')+'CSV</button></div>'+
+      '<div class="card pad" style="border:none;box-shadow:none"><div class="stats" style="grid-template-columns:1fr 1fr">'+
+        '<div class="stat"><div class="v">'+sold.length+'</div><div class="l">Orders</div></div>'+
+        '<div class="stat"><div class="v">'+money(revenue)+'</div><div class="l">Revenue</div></div>'+
+        '<div class="stat"><div class="v">'+avgDays+' d</div><div class="l">Avg time to sell</div></div>'+
+        '<div class="stat"><div class="v">'+DB.orders.filter(function(o){return o.status==='Awaiting Pick';}).length+'</div><div class="l">Awaiting pick</div></div>'+
+      '</div></div></div>'+
+    '<div class="card"><div class="card-h"><div><h3>Movement (30 days)</h3><div class="sub">put-aways &amp; relocations</div></div></div>'+
+      '<div class="card pad activity" style="border:none;box-shadow:none">'+(moves30.slice(0,6).map(function(a){return '<div class="a">'+avatar(a.user)+'<div class="txt"><b>'+esc(getUser(a.user).name)+'</b> '+esc(a.detail)+'<div class="t">'+esc(a.partName)+' · '+relTime(a.ts)+'</div></div></div>';}).join('')||'<div class="muted" style="font-size:13px">No movement in the last 30 days.</div>')+'</div></div>'+
+  '</div>'+
+
+  sec('Employee activity','Actions attributed to each user','activity',
+    '<div class="table-wrap"><table><thead><tr><th>Employee</th><th>Role</th><th>Placed</th><th>Moved</th><th>Picked</th><th>Shipped</th><th>Total</th></tr></thead><tbody>'+
+      DB.users.map(function(u){var b=byUser[u.id]||{Placed:0,Moved:0,Picked:0,Shipped:0,total:0};return '<tr><td><div class="row" style="gap:9px;flex-wrap:nowrap">'+avatar(u.id)+'<span class="pname">'+esc(u.name)+'</span></div></td><td class="muted">'+esc(u.role)+'</td><td>'+b.Placed+'</td><td>'+b.Moved+'</td><td>'+b.Picked+'</td><td>'+b.Shipped+'</td><td><b>'+b.total+'</b></td></tr>';}).join('')+
+    '</tbody></table></div>');
+}
+
+/* ---------- Retrieval Requests ---------- */
+function viewRequests(){
+  var open=DB.requests.filter(function(r){return r.status!=='Completed';});
+  return ''+
+  '<div class="page-head"><div><h1>Retrieval Requests</h1><p>Office staff can ask the warehouse to pull a part for photos, inspection or measurements.</p></div>'+
+    '<button class="btn btn-primary" data-action="new-request">'+svg('plus')+'New request</button></div>'+
+  '<div id="req-form-slot"></div>'+
+  '<div class="card"><div class="card-h"><h3>Requests</h3><span class="sub">'+open.length+' open</span></div>'+
+    (DB.requests.length?'<div class="table-wrap"><table><thead><tr><th>Request</th><th>Part</th><th>Location</th><th>Reason</th><th>Assigned</th><th>Status</th><th></th></tr></thead><tbody>'+
+      DB.requests.slice().sort(function(a,b){return b.createdAt-a.createdAt;}).map(function(r){
+        var p=getPart(r.barcode);
+        return '<tr><td class="mono">'+r.id+'<div class="muted" style="font-size:11px">'+relTime(r.createdAt)+'</div></td>'+
+          '<td><span class="lk" data-action="locate-go" data-code="'+r.barcode+'">'+esc(r.partName)+'</span><div class="muted mono" style="font-size:11px">'+r.barcode+'</div></td>'+
+          '<td class="mono nowrap">'+(p&&p.location?locShort(p.location):'—')+'</td>'+
+          '<td style="max-width:240px;font-size:12.5px">'+esc(r.reason)+'</td>'+
+          '<td>'+(r.assignedTo?'<div class="row" style="gap:7px;flex-wrap:nowrap">'+avatar(r.assignedTo)+'<span style="font-size:12.5px">'+esc(getUser(r.assignedTo).name)+'</span></div>':'<span class="muted">Unassigned</span>')+'</td>'+
+          '<td>'+reqBadge(r.status)+'</td>'+
+          '<td>'+(r.status!=='Completed'?'<button class="btn btn-soft btn-sm" data-action="complete-request" data-id="'+r.id+'">'+svg('check')+'Done</button>':'<span class="muted">'+svg('check')+'</span>')+'</td></tr>';
+      }).join('')+'</tbody></table></div>'
+    :'<div class="empty">'+svg('flag')+'<b>No requests yet</b>Create one with the button above.</div>')+
+  '</div>';
+}
+function requestForm(code){
+  var opts=DB.parts.filter(inStock).map(function(p){return '<option value="'+p.barcode+'"'+(code===p.barcode?' selected':'')+'>'+p.barcode+' — '+esc(p.name)+'</option>';}).join('');
+  var users=DB.users.filter(function(u){return u.role==='Warehouse';}).map(function(u){return '<option value="'+u.id+'">'+esc(u.name)+'</option>';}).join('');
+  return '<div class="card pad" style="margin-bottom:14px"><div class="card-h" style="padding:0 0 14px;border:none"><h3>New retrieval request</h3><button class="lk" data-action="cancel-request">Cancel</button></div>'+
+    '<form data-form="request"><div class="grid" style="grid-template-columns:1fr 1fr">'+
+      '<div class="field"><label>Part</label><select class="select" name="barcode" required>'+opts+'</select></div>'+
+      '<div class="field"><label>Assign to</label><select class="select" name="assignedTo"><option value="">Unassigned</option>'+users+'</select></div>'+
+    '</div><div class="field"><label>Reason / what\'s needed</label><textarea class="input" name="reason" rows="2" placeholder="e.g. Additional photo of connector for buyer question" required></textarea></div>'+
+    '<button class="btn btn-primary" type="submit">'+svg('plus')+'Create request</button></form></div>';
+}
+
+/* ---------- Donor Vehicles ---------- */
+function viewVehicles(){
+  return ''+
+  '<div class="page-head"><div><h1>Donor Vehicles</h1><p>Vehicle-to-part relationships and inventory by donor (VIN tracking).</p></div></div>'+
+  '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">'+
+    DB.vehicles.map(function(v){
+      var parts=DB.parts.filter(function(p){return p.vehicleId===v.id;});
+      var instk=parts.filter(inStock); var val=instk.reduce(function(a,p){return a+p.price;},0);
+      return '<div class="card pad"><div class="row" style="justify-content:space-between;align-items:flex-start"><div class="row" style="gap:11px"><span class="stat" style="padding:0;border:none;box-shadow:none"><span class="ico" style="background:var(--brand-soft);color:var(--brand);margin:0">'+svg('car')+'</span></span><div><b style="font-size:15px">'+v.year+' '+esc(v.make)+'</b><div class="muted" style="font-size:12.5px">'+esc(v.model)+'</div></div></div><span class="muted mono" style="font-size:11px">'+v.id+'</span></div>'+
+        '<div class="spec" style="margin-top:14px;grid-template-columns:1fr 1fr">'+
+          '<div class="c"><div class="k">VIN</div><div class="val mono" style="font-size:11.5px">'+esc(v.vin)+'</div></div>'+
+          '<div class="c"><div class="k">Acquired</div><div class="val" style="font-size:12.5px">'+fmtDate(ago(v.acq))+'</div></div>'+
+          '<div class="c"><div class="k">Parts in stock</div><div class="val">'+instk.length+' / '+parts.length+'</div></div>'+
+          '<div class="c"><div class="k">On-hand value</div><div class="val">'+money(val)+'</div></div>'+
+        '</div>'+
+        '<button class="btn btn-ghost btn-sm btn-block" style="margin-top:13px" data-action="veh-parts" data-veh="'+v.id+'">'+svg('list')+'View '+parts.length+' parts</button></div>';
+    }).join('')+
+  '</div>';
+}
+
+/* ---------- Users ---------- */
+function viewUsers(){
+  var byUser={};
+  DB.activity.forEach(function(a){ byUser[a.user]=(byUser[a.user]||{n:0,last:0}); byUser[a.user].n++; if(a.ts>byUser[a.user].last)byUser[a.user].last=a.ts; });
+  return ''+
+  '<div class="page-head"><div><h1>Users &amp; Activity</h1><p>Multi-user access with per-employee attribution. Switch the active user from the top-right menu to see attribution change.</p></div></div>'+
+  '<div class="card"><div class="card-h"><h3>Team</h3><span class="sub">'+DB.users.length+' users</span></div><div class="table-wrap"><table><thead><tr><th>Employee</th><th>Role</th><th>Access</th><th>Actions logged</th><th>Last active</th><th></th></tr></thead><tbody>'+
+    DB.users.map(function(u){var b=byUser[u.id]||{n:0,last:0};var cur=u.id===DB.currentUser;
+      return '<tr><td><div class="row" style="gap:10px;flex-wrap:nowrap">'+avatar(u.id)+'<span class="pname">'+esc(u.name)+(cur?' <span class="badge b-inprogress" style="margin-left:4px">You</span>':'')+'</span></div></td>'+
+        '<td class="muted">'+esc(u.role)+'</td>'+
+        '<td>'+(u.role==='Administrator'?'<span class="badge b-sold">Full / Admin</span>':u.role.indexOf('Office')>=0?'<span class="badge b-notlisted">Listings</span>':'<span class="badge b-available"><span class="d"></span>Warehouse</span>')+'</td>'+
+        '<td>'+b.n+'</td><td class="muted">'+(b.last?relTime(b.last):'—')+'</td>'+
+        '<td>'+(cur?'<span class="muted" style="font-size:12px">active</span>':'<button class="btn btn-ghost btn-sm" data-action="switch-user" data-id="'+u.id+'">Act as</button>')+'</td></tr>';
+    }).join('')+
+  '</tbody></table></div></div>'+
+  '<div class="note" style="margin-top:16px">'+svg('alert')+'<div>In a live build this is backed by real authentication (email + password or SSO) with role-based permissions; every create / move / pick / status change is stamped with the signed-in employee — exactly as shown in the movement history.</div></div>';
+}
+
+/* ---------- Settings ---------- */
+function viewSettings(){
+  return ''+
+  '<div class="page-head"><div><h1>Settings &amp; Integrations</h1><p>eBay connection, backups and data protection.</p></div></div>'+
+  '<div class="grid" style="grid-template-columns:1fr 1fr">'+
+    '<div class="card"><div class="card-h"><h3>eBay integration</h3><span class="badge b-available"><span class="d"></span>Connected</span></div><div class="card pad" style="border:none;box-shadow:none">'+
+      '<div class="spec" style="grid-template-columns:1fr 1fr">'+
+        '<div class="c"><div class="k">Account</div><div class="val" style="font-size:13px">'+esc(DB.ebay.account)+'</div></div>'+
+        '<div class="c"><div class="k">Active listings synced</div><div class="val">'+DB.ebay.listings+'</div></div>'+
+        '<div class="c"><div class="k">Last sync</div><div class="val" style="font-size:13px">'+relTime(DB.ebay.lastSync)+'</div></div>'+
+        '<div class="c"><div class="k">Auto-import orders</div><div class="val" style="font-size:13px">On · every 15 min</div></div>'+
+      '</div>'+
+      '<button class="btn btn-ghost btn-sm" style="margin-top:13px" data-action="sync-ebay">'+svg('sync')+'Sync now</button>'+
+      '<div class="note" style="margin-top:13px">'+svg('alert')+'<div>Uses the eBay <b>Sell APIs</b> (Inventory, Fulfillment, Browse) to import sold orders, pull listing data &amp; the primary photo, and push quantity to prevent overselling.</div></div>'+
+    '</div></div>'+
+
+    '<div class="card"><div class="card-h"><h3>Backups &amp; data protection</h3>'+(DB.backups[0].status==='Success'?'<span class="badge b-available"><span class="d"></span>Healthy</span>':'<span class="badge b-reserved">Attention</span>')+'</div><div class="card pad" style="border:none;box-shadow:none">'+
+      '<div class="spec" style="grid-template-columns:1fr 1fr">'+
+        '<div class="c"><div class="k">Schedule</div><div class="val" style="font-size:13px">Daily · 2:00 AM</div></div>'+
+        '<div class="c"><div class="k">Destinations</div><div class="val" style="font-size:13px">NAS + Offsite (S3)</div></div>'+
+        '<div class="c"><div class="k">Retention</div><div class="val" style="font-size:13px">30 days</div></div>'+
+        '<div class="c"><div class="k">Last backup</div><div class="val" style="font-size:13px">'+relTime(DB.backups[0].ts)+'</div></div>'+
+      '</div>'+
+      '<div class="row" style="margin-top:13px"><button class="btn btn-ghost btn-sm" data-action="run-backup">'+svg('save')+'Run manual backup</button><button class="btn btn-ghost btn-sm" data-action="toast-restore">'+svg('reset')+'Restore…</button></div>'+
+    '</div></div>'+
+  '</div>'+
+
+  '<div class="card" style="margin-top:16px"><div class="card-h"><h3>Recent backups</h3><span class="sub">includes DB, photos &amp; transaction history</span></div><div class="table-wrap"><table><thead><tr><th>When</th><th>Type</th><th>Size</th><th>Destination</th><th>Status</th></tr></thead><tbody>'+
+    DB.backups.slice(0,8).map(function(b){return '<tr><td class="nowrap">'+fmtDT(b.ts)+'</td><td>'+b.type+'</td><td>'+b.size+'</td><td class="muted">'+esc(b.dest)+'</td><td>'+(b.status==='Success'?'<span class="badge b-available"><span class="d"></span>Success</span>':'<span class="badge b-scrapped" style="background:var(--danger-soft);color:#b91c1c">Failed — alert sent</span>')+'</td></tr>';}).join('')+
+  '</tbody></table></div></div>'+
+
+  '<div class="card pad" style="margin-top:16px"><div class="row" style="justify-content:space-between"><div><b style="font-size:14px">Demo data</b><div class="muted" style="font-size:12.5px">Restore the sample dataset and clear any changes you made in this browser.</div></div><button class="btn btn-ghost" data-action="reset">'+svg('reset')+'Reset demo</button></div></div>';
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+var NAVDEF=[
+  {label:'OVERVIEW',header:true},
+  {p:'/dashboard',i:'dash',t:'Dashboard'},
+  {label:'WAREHOUSE',header:true},
+  {p:'/locate',i:'scan',t:'Scan to Locate'},
+  {p:'/receive',i:'receive',t:'Receive / Put-away'},
+  {p:'/move',i:'move',t:'Move Inventory'},
+  {p:'/inventory',i:'list',t:'Inventory'},
+  {label:'SALES',header:true},
+  {p:'/orders',i:'tag',t:'eBay Orders',badge:'orders'},
+  {p:'/reports',i:'chart',t:'Reports'},
+  {label:'MANAGE',header:true},
+  {p:'/requests',i:'flag',t:'Retrieval Requests'},
+  {p:'/vehicles',i:'car',t:'Donor Vehicles'},
+  {p:'/users',i:'users',t:'Users & Activity'},
+  {p:'/settings',i:'gear',t:'Settings'}
+];
+var ROUTES={'/dashboard':viewDashboard,'/locate':viewLocate,'/receive':viewReceive,'/move':viewMove,'/inventory':viewInventory,'/orders':viewOrders,'/reports':viewReports,'/requests':viewRequests,'/vehicles':viewVehicles,'/users':viewUsers,'/settings':viewSettings};
+
+function renderNav(){
+  var awaiting=DB.orders.filter(function(o){return o.status==='Awaiting Pick';}).length;
+  $('#nav').innerHTML=NAVDEF.map(function(n){
+    if(n.header) return '<div class="nav-label">'+n.label+'</div>';
+    var badge = n.badge==='orders' && awaiting ? '<span class="tag">'+awaiting+'</span>' : '';
+    return '<a href="#'+n.p+'" data-route="'+n.p+'">'+svg(n.i)+n.t+badge+'</a>';
+  }).join('');
+}
+function setActiveNav(path){ $$('#nav a').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-route')===path); }); }
+
+function renderTopbar(){
+  $('#tb-sync').innerHTML='<span class="sync-pill" title="eBay connected"><span class="dot"></span>eBay synced</span>';
+  var u=curUser();
+  $('#tb-user').innerHTML='<button class="userbtn" data-action="user-menu"><span class="avatar">'+u.init+'</span><span class="u-meta"><b>'+esc(u.name)+'</b><span>'+esc(u.role)+'</span></span></button>'+
+    '<div class="menu" id="usermenu"><div class="mh">Acting as — switch user</div>'+
+      DB.users.map(function(x){return '<button data-action="switch-user" data-id="'+x.id+'" class="'+(x.id===DB.currentUser?'cur':'')+'"><span class="avatar" style="width:24px;height:24px;font-size:10px">'+x.init+'</span><span>'+esc(x.name)+' · '+esc(x.role)+'</span></button>';}).join('')+
+      '<div class="mh">Demo</div><button data-action="reset">'+svg('reset')+'Reset demo data</button>'+
+    '</div>';
+  var bell=DB.requests.filter(function(r){return r.status!=='Completed';}).length;
+  $('#tb-bell').style.display=bell?'flex':'none'; $('#tb-bell').textContent=bell;
+}
+
+function render(){
+  var hash=location.hash.replace(/^#/,'')||'/dashboard';
+  var path=hash.split('?')[0];
+  var view=ROUTES[path]||viewDashboard;
+  $('#view').innerHTML=view();
+  setActiveNav(path);
+  renderNav();
+  document.body.classList.remove('nav-open');
+  var f=$('[data-scan]'); if(f) f.focus();
+  window.scrollTo(0,0);
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function recordEvent(part, ev){
+  ev.ts=Date.now(); ev.user=DB.currentUser;
+  part.history.push(ev);
+  DB.activity.unshift({ts:ev.ts,user:ev.user,type:ev.type,barcode:part.barcode,partName:part.name,detail:historyText(ev)});
+  save();
+}
+function toast(msg,kind){
+  var t=document.createElement('div'); t.className='toast '+(kind||'info');
+  var ic=kind==='err'?'x':'check';
+  t.innerHTML=svg(ic)+'<span>'+msg+'</span>';
+  $('#toast').appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='.3s'; setTimeout(function(){t.remove();},300); },2600);
+}
+function dispatchScan(code){
+  code=String(code||'').trim(); if(!code) return;
+  var path=(location.hash.replace(/^#/,'')||'/dashboard').split('?')[0];
+  if(path==='/locate'){
+    var p=getPart(code);
+    if(p){ UI.locate={part:p}; }
+    else if(getBoxLoc(code)){ UI.locate={box:code}; }
+    else { UI.locate={miss:code}; }
+    render(); return;
+  }
+  if(path==='/receive'){
+    if(!UI.receive.part){ var pr=getPart(code); if(!pr){toast('No part found for '+esc(code),'err');return;} UI.receive.part=pr.barcode; render(); }
+    else { var box=getBoxLoc(code); if(!box){toast('No storage box found for '+esc(code),'err');return;} doPlace(UI.receive.part, code); }
+    return;
+  }
+  if(path==='/move'){
+    if(!UI.move.part){ var pm=getPart(code); if(!pm){toast('No part found for '+esc(code),'err');return;} if(!pm.location){toast('That part has no location yet — use Receive first.','err');return;} UI.move.part=pm.barcode; render(); }
+    else { var b2=getBoxLoc(code); if(!b2){toast('No storage box found for '+esc(code),'err');return;} doMove(UI.move.part, code); }
+    return;
+  }
+}
+function doPlace(barcode, boxId){
+  var p=getPart(barcode); var loc=getBoxLoc(boxId); if(!p||!loc) return;
+  var from=p.boxId||'Receiving Dock';
+  p.boxId=boxId; p.location=Object.assign({},loc);
+  recordEvent(p,{type:from==='Receiving Dock'?'Placed':'Moved',from:from,to:boxId,loc:loc});
+  UI.receive.part=null; toast('Placed '+p.barcode+' in '+boxId+' · '+locShort(loc),'ok'); render();
+}
+function doMove(barcode, boxId){
+  var p=getPart(barcode); var loc=getBoxLoc(boxId); if(!p||!loc) return;
+  if(p.boxId===boxId){ toast('Part is already in '+boxId,'err'); return; }
+  var from=p.boxId;
+  p.boxId=boxId; p.location=Object.assign({},loc);
+  recordEvent(p,{type:'Moved',from:from,to:boxId,loc:loc});
+  UI.move.part=null; toast('Moved '+p.barcode+' → '+boxId,'ok'); render();
+}
+function exportCsv(report){
+  var rows=[], name='export.csv';
+  if(report==='inventory'){ name='inventory.csv'; rows.push(['Barcode','Part','Vehicle','Status','Box','Location','DaysInStock','Price','eBayItemID','SKU']);
+    filteredParts().forEach(function(p){rows.push([p.barcode,p.name,fitment(p),p.status,p.boxId||'',locShort(p.location),inStock(p)?daysIn(p.receivedAt):'',p.price,p.ebay.itemId||'',p.ebay.sku||'']);});
+  } else if(report==='orders'){ name='ebay-orders.csv'; rows.push(['Order','ItemID','Barcode','Part','Buyer','City','Price','SoldDate','Status','PickLocation']);
+    DB.orders.forEach(function(o){var p=getPart(o.barcode);rows.push([o.orderId,p?p.ebay.itemId:'',o.barcode,o.partName,o.buyer,o.city,o.price,fmtDate(o.soldAt),o.status,o.location?locShort(o.location):'']);});
+  } else if(report==='aging'){ name='inventory-aging.csv'; rows.push(['Barcode','Part','Status','DaysInStock','Price','Location']);
+    DB.parts.filter(inStock).sort(function(a,b){return a.receivedAt-b.receivedAt;}).forEach(function(p){rows.push([p.barcode,p.name,p.status,daysIn(p.receivedAt),p.price,locShort(p.location)]);});
+  } else if(report==='activity'){ name='employee-activity.csv'; rows.push(['Time','Employee','Action','Part','Barcode','Detail']);
+    DB.activity.forEach(function(a){rows.push([fmtDT(a.ts),getUser(a.user).name,a.type,a.partName,a.barcode,a.detail]);});
+  }
+  var csv=rows.map(function(r){return r.map(function(c){c=String(c==null?'':c); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast('Exported '+name,'ok');
+}
+
+/* ============================================================
+   EVENT WIRING (delegation)
+   ============================================================ */
+function closeMenus(){ $$('.menu.open').forEach(function(m){m.classList.remove('open');}); }
+
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-action]');
+  if(!t){ if(!e.target.closest('.userbox')) closeMenus(); return; }
+  var act=t.getAttribute('data-action');
+  var code=t.getAttribute('data-code'), id=t.getAttribute('data-id'), order=t.getAttribute('data-order'), veh=t.getAttribute('data-veh');
+
+  switch(act){
+    case 'menu': document.body.classList.toggle('nav-open'); break;
+    case 'user-menu': e.stopPropagation(); var m=$('#usermenu'); if(m){var was=m.classList.contains('open');closeMenus();if(!was)m.classList.add('open');} break;
+    case 'scan': var inp=$('[data-scan]'); dispatchScan(code || (inp?inp.value:'')); break;
+    case 'locate-go': UI.locate={part:getPart(code)}; if(!getPart(code)) UI.locate={miss:code}; location.hash='#/locate'; if((location.hash.replace(/^#/,''))==='/locate') render(); break;
+    case 'prep-move': UI.move={part:code}; break; // navigates via href
+    case 'receive-cancel': UI.receive.part=null; render(); break;
+    case 'move-cancel': UI.move.part=null; render(); break;
+    case 'pick': pickOrder(order); break;
+    case 'ship': shipOrder(order); break;
+    case 'sync-ebay': DB.ebay.lastSync=Date.now(); save(); renderTopbar(); toast('eBay sync complete — listings up to date, 0 new orders','ok'); if((location.hash.indexOf('orders')>=0)||(location.hash.indexOf('settings')>=0)) render(); break;
+    case 'set-status': break; // handled on change
+    case 'switch-user': DB.currentUser=id; save(); closeMenus(); renderTopbar(); toast('Now acting as '+getUser(id).name,'info'); render(); break;
+    case 'export': exportCsv(t.getAttribute('data-report')); break;
+    case 'new-request': openRequestForm(code); break;
+    case 'cancel-request': UI._reqForm=false; render(); break;
+    case 'complete-request': completeRequest(id); break;
+    case 'goto-requests': location.hash='#/requests'; break;
+    case 'veh-parts': UI.invVeh=veh; UI.invQuery=''; UI.invStatus='all'; location.hash='#/inventory'; break;
+    case 'run-backup': DB.backups.unshift({ts:Date.now(),type:'Manual',status:'Success',size:'1.25 GB',dest:'NAS · Offsite (S3)'}); save(); toast('Manual backup complete — 1.25 GB','ok'); render(); break;
+    case 'toast-restore': toast('Restore runs from any retained snapshot in a live build','info'); break;
+    case 'reset': resetDemo(); renderTopbar(); toast('Demo data reset','ok'); location.hash='#/dashboard'; render(); break;
+  }
+});
+
+document.addEventListener('change',function(e){
+  var f=e.target.closest('[data-filter]');
+  if(f){ UI[f.getAttribute('data-filter')]=f.value; var tb=$('#inv-tbody'); if(tb){ tb.innerHTML=invRows(); var c=$('#inv-count'); if(c)c.textContent=filteredParts().length+' of '+DB.parts.length+' parts'; } else render(); return; }
+  var st=e.target.closest('[data-action="set-status"]');
+  if(st){ var p=getPart(st.getAttribute('data-code')); if(p){ var old=p.status; p.status=st.value; recordEvent(p,{type:'Status',note:'Status changed '+old+' → '+st.value}); toast('Status updated to '+st.value,'ok'); render(); } }
+});
+
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter') return;
+  if(e.target.matches('[data-scan]')){ e.preventDefault(); dispatchScan(e.target.value); }
+  else if(e.target.matches('[data-search="inv"]')){ e.preventDefault(); UI.invQuery=e.target.value; var tb=$('#inv-tbody'); if(tb){tb.innerHTML=invRows(); var c=$('#inv-count'); if(c)c.textContent=filteredParts().length+' of '+DB.parts.length+' parts';} }
+  else if(e.target.matches('[data-search-global]')){ e.preventDefault(); UI.invQuery=e.target.value; UI.invStatus='all'; UI.invVeh='all'; location.hash='#/inventory'; }
+});
+
+document.addEventListener('input',function(e){
+  if(e.target.matches('[data-search="inv"]')){ UI.invQuery=e.target.value; var tb=$('#inv-tbody'); if(tb){tb.innerHTML=invRows(); var c=$('#inv-count'); if(c)c.textContent=filteredParts().length+' of '+DB.parts.length+' parts';} }
+});
+
+document.addEventListener('submit',function(e){
+  var form=e.target.closest('[data-form="request"]'); if(!form) return;
+  e.preventDefault();
+  var bc=form.barcode.value, reason=form.reason.value.trim(), assignedTo=form.assignedTo.value||null;
+  if(!reason){ toast('Please add a reason','err'); return; }
+  var p=getPart(bc);
+  var r={id:'RR-'+(DB.reqSeq++),barcode:bc,partName:p?p.name:bc,reason:reason,status:assignedTo?'In Progress':'Open',assignedTo:assignedTo,createdAt:Date.now(),by:DB.currentUser};
+  DB.requests.unshift(r); save(); UI._reqForm=false; toast('Retrieval request '+r.id+' created','ok');
+  if((location.hash.replace(/^#/,''))!=='/requests'){ location.hash='#/requests'; } else render();
+});
+
+function pickOrder(orderId){ var o=findOrder(orderId); if(!o)return; o.status='Picked'; o.picker=DB.currentUser; var p=getPart(o.barcode); if(p) recordEvent(p,{type:'Picked',from:p.boxId,note:'Picked for order '+orderId}); save(); toast('Picked '+o.barcode+' for '+orderId,'ok'); render(); }
+function shipOrder(orderId){ var o=findOrder(orderId); if(!o)return; o.status='Shipped'; var p=getPart(o.barcode); if(p) recordEvent(p,{type:'Shipped',note:'Shipped order '+orderId}); save(); toast('Marked '+orderId+' shipped','ok'); render(); }
+function findOrder(id){ for(var i=0;i<DB.orders.length;i++) if(DB.orders[i].orderId===id) return DB.orders[i]; return null; }
+function completeRequest(id){ for(var i=0;i<DB.requests.length;i++) if(DB.requests[i].id===id){DB.requests[i].status='Completed';} save(); renderTopbar(); toast('Request '+id+' completed','ok'); render(); }
+function openRequestForm(code){
+  if((location.hash.replace(/^#/,''))!=='/requests'){ UI._pendingReqCode=code||''; location.hash='#/requests'; setTimeout(function(){injectReqForm(code);},0); }
+  else injectReqForm(code);
+}
+function injectReqForm(code){ var slot=$('#req-form-slot'); if(slot){ slot.innerHTML=requestForm(code||''); slot.scrollIntoView({behavior:'smooth',block:'center'}); } }
+
+/* ---------- boot ---------- */
+load();
+renderNav();
+renderTopbar();
+window.addEventListener('hashchange',function(){ render(); if(UI._pendingReqCode!=null && (location.hash.replace(/^#/,''))==='/requests'){ injectReqForm(UI._pendingReqCode); UI._pendingReqCode=null; } });
+if(!location.hash) location.hash='#/dashboard'; else render();
+})();
+</script>
+</body>
+</html>
