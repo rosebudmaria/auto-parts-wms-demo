@@ -140,7 +140,7 @@
 
   /* stat cards */
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(174px,1fr));gap:13px}
-  .stat{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:var(--radius);padding:15px 16px;position:relative;overflow:hidden}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;position:relative;overflow:hidden}
   .stat .ico{width:34px;height:34px;border-radius:4px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
   .stat .ico svg{width:18px;height:18px}
   .stat .v{font-family:var(--disp);font-size:30px;font-weight:600;letter-spacing:.01em;line-height:1}
@@ -314,7 +314,7 @@
     <main class="content" id="view"></main>
     <footer class="appfoot">
       <div class="ft-l"><span class="ft-mark">PT</span><span>PartTrack WMS — interactive demo · sample data, no live eBay / database</span></div>
-      <div class="ft-r">Prepared by <b>rosebudmaria</b> · <a href="https://github.com/rosebudmaria/auto-parts-wms-demo" target="_blank" rel="noopener">source on GitHub</a></div>
+      <div class="ft-r">Prepared by <b>Program Rose</b> · <a href="mailto:rosegoldgroup@outlook.com">rosegoldgroup@outlook.com</a></div>
     </footer>
   </div>
 </div>
@@ -665,7 +665,7 @@ function viewDashboard(){
   ];
 
   function stat(ico,col,bg,v,l,sm){
-    return '<div class="stat" style="border-left-color:'+col+'"><div class="ico" style="background:'+bg+';color:'+col+'">'+svg(ico)+'</div>'+
+    return '<div class="stat"><div class="ico" style="background:'+bg+';color:'+col+'">'+svg(ico)+'</div>'+
       '<div class="v">'+v+'</div><div class="l">'+l+'</div>'+(sm||'')+'</div>';
   }
 
