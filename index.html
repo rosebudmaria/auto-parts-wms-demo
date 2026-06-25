@@ -8,31 +8,31 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%23ff6a00'/%3E%3Cpath d='M16 6l8 4.5v9L16 24l-8-4.5v-9z' fill='none' stroke='%2315171c' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M8 10.5l8 4.5 8-4.5M16 24v-9' fill='none' stroke='%2315171c' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
   :root{
-    --bg:#13151a; --panel:#1b1e25; --panel-2:#23272f; --elevated:#262b33;
-    --ink:#eceef2; --ink-2:#c3c8d1; --muted:#8b929d; --faint:#666c76;
-    --line:#2d323c; --line-2:#23272f;
-    --brand:#ff6a00; --brand-dk:#e85f00; --brand-soft:rgba(255,106,0,.13);
-    --ok:#3fb950; --ok-soft:rgba(63,185,80,.14);
-    --warn:#e3a008; --warn-soft:rgba(227,160,8,.14);
-    --danger:#f85149; --danger-soft:rgba(248,81,73,.14);
-    --purple:#a371f7; --purple-soft:rgba(163,113,247,.14);
-    --sold:#4d9fef; --sold-soft:rgba(77,159,239,.14);
-    --gold:#e3b341; --gold-soft:rgba(227,179,65,.14);
-    --gray-soft:rgba(139,146,157,.13);
-    --sidebar:#0f1115; --sidebar-2:#1a1d24;
-    --radius:4px; --radius-sm:3px;
-    --shadow:0 1px 0 rgba(0,0,0,.3);
+    --bg:#f4f6f8; --panel:#ffffff; --panel-2:#f7f8fa; --elevated:#ffffff;
+    --ink:#1b2026; --ink-2:#4b545d; --muted:#828b95; --faint:#9aa2ac;
+    --line:#e5e8ec; --line-2:#eef1f4;
+    --brand:#b15c28; --brand-dk:#9a4f22; --brand-soft:#f6ece2;
+    --ok:#3f9d63; --ok-soft:#eaf4ee;
+    --warn:#c79318; --warn-soft:#f7f0df;
+    --danger:#b5635b; --danger-soft:#f6eceb;
+    --purple:#8a8a96; --purple-soft:#eeeef1;
+    --sold:#5a86b8; --sold-soft:#eaf1f8;
+    --gold:#9a7b2e; --gold-soft:#f7f0df;
+    --gray-soft:#eeeef1;
+    --sidebar:#ffffff; --sidebar-2:#f4f6f8;
+    --radius:8px; --radius-sm:6px;
+    --shadow:0 1px 2px rgba(20,28,38,.04);
     --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
-    --disp:'Oswald','IBM Plex Sans',system-ui,sans-serif;
-    --hazard:repeating-linear-gradient(45deg,#ff6a00 0 9px,#13151a 9px 18px);
+    --disp:'Public Sans',system-ui,sans-serif;
+    --hazard:repeating-linear-gradient(45deg,#e7d8c6 0 9px,#f4f6f8 9px 18px);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{-webkit-text-size-adjust:100%}
-  body{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased}
+  body{font-family:'Public Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased}
   a{color:inherit;text-decoration:none}
   button{font-family:inherit;cursor:pointer}
   svg{display:block}
@@ -283,6 +283,39 @@
     .userbtn .u-meta{display:none}
     .page-head h1{font-size:23px}
   }
+
+  /* ============ Direction A — light enterprise reskin ============ */
+  ::selection{background:rgba(177,92,40,.22)}
+  ::-webkit-scrollbar-thumb{background:#d2d7dd;border:3px solid var(--bg)}
+  .topbar{background:rgba(255,255,255,.9)}
+  .search input:focus{background:#fff}
+  .input:focus,.select:focus,textarea.input:focus{background:#fff}
+  .scan-input input{background:#fbfcfd;color:var(--ink)}
+  .photo .cam{background:rgba(27,32,38,.62)}
+  /* type: drop the all-caps + condensed tracking */
+  .page-head h1,.card-h h3,.card-h .sub,.nav-label,.tb-btn,.sync-pill,.btn,.badge,th,.stat .l,.stat .v,.field label,.scan-title,.step,.spec .k,.spec .val,.empty b,.locline .seg small,.demo-tag,.menu .mh,.brand .name,.brand .name small,.appfoot .ft-mark,.userbtn .u-meta span,.donut-hole b,.donut-hole span{text-transform:none;letter-spacing:0}
+  .page-head h1{letter-spacing:-.015em;font-weight:700}
+  .stat .v,.donut-hole b{letter-spacing:-.01em}
+  /* brand + nav */
+  .brand .name{color:var(--ink)}
+  .brand .name small{color:var(--muted);letter-spacing:.03em}
+  .nav a:hover{background:var(--sidebar-2);color:var(--ink)}
+  .nav a:hover svg{opacity:1}
+  .nav a.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
+  .nav a.active::before{display:none}
+  .nav a.active svg{color:var(--brand);opacity:1}
+  /* buttons + menus */
+  .btn-primary{color:#fff}
+  .btn-primary:hover{background:var(--brand-dk)}
+  .menu button:hover{background:var(--panel-2);color:var(--ink)}
+  .toast{color:var(--ink)}
+  /* status badges retuned for a light background */
+  .b-available{color:#2f7d4e;border-color:#cfe6d8}
+  .b-sold,.b-inprogress,.b-picked{color:#3a5d86;border-color:#cddcee}
+  .b-reserved,.b-open,.b-awaitingpick{color:#8a6516;border-color:#ecdcae}
+  .b-scrapped{color:#5b5b66;border-color:#dededf}
+  .b-notlisted{color:#5b5b66;border-color:#dededf}
+  .b-completed,.b-shipped{color:#2f7d4e;border-color:#cfe6d8}
 </style>
 </head>
 <body>
@@ -389,9 +422,9 @@ function svg(name,cls){ return '<svg class="'+(cls||'')+'" viewBox="0 0 24 24" f
 /* category visuals for the part "photo" placeholder */
 var CAT = {
   lighting:{c:'#f5a623',g:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12c.5.5 1 1.6 1 3h6c0-1.4.5-2.5 1-3a7 7 0 0 0-4-12z"/>'},
-  body:{c:'#4d9fef',g:'<rect x="4" y="3" width="13" height="18" rx="2"/><path d="M13 12h.01"/><path d="M17 7h3v10h-3"/>'},
+  body:{c:'#5a86b8',g:'<rect x="4" y="3" width="13" height="18" rx="2"/><path d="M13 12h.01"/><path d="M17 7h3v10h-3"/>'},
   engine:{c:'#f06a5a',g:'<path d="M6 9h6l2-2h3v4h2v4h-2v2h-4l-2-2H6v3H3v-3H2v-4h1V9h3z"/>'},
-  drivetrain:{c:'#a371f7',g:'<circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'},
+  drivetrain:{c:'#8a8a96',g:'<circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'},
   electrical:{c:'#e3c23a',g:'<path d="M13 2L3 14h7l-1 8 10-12h-7z"/>'},
   interior:{c:'#36c2b4',g:'<path d="M4 19v-6a2 2 0 0 1 2-2h1V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5h3a2 2 0 0 1 2 2v6"/><path d="M4 19h16"/>'},
   glass:{c:'#3ec8e0',g:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 11h18M12 4v14"/>'},
@@ -400,7 +433,7 @@ var CAT = {
   mirror:{c:'#5ab0ef',g:'<rect x="4" y="4" width="16" height="11" rx="3"/><path d="M9 15v2a3 3 0 0 0 6 0v-2"/>'}
 };
 function partPhoto(part, cls){
-  var m = CAT[part.category] || {c:'#8b929d', g:P.box};
+  var m = CAT[part.category] || {c:'#8a8a96', g:P.box};
   return '<div class="photo '+(cls||'')+'" style="background:linear-gradient(135deg,'+m.c+'22,var(--panel-2))">'+
     '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="'+m.c+'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+m.g+'</svg>'+
     '<span class="cam">'+svg('cam')+'eBay photo</span></div>';
@@ -637,7 +670,7 @@ function historyText(h){
     default: return h.note||h.type;
   }
 }
-var TLMETA={Received:{c:'#4d9fef',i:'receive'},Placed:{c:'#3fb950',i:'pin'},Moved:{c:'#e3a008',i:'move'},Listed:{c:'#a371f7',i:'tag'},Sold:{c:'#4d9fef',i:'dollar'},Picked:{c:'#56b6c2',i:'box'},Shipped:{c:'#3fb950',i:'truck'},Status:{c:'#8b929d',i:'alert'},Reserved:{c:'#e3a008',i:'clock'}};
+var TLMETA={Received:{c:'#5a86b8',i:'receive'},Placed:{c:'#3f9d63',i:'pin'},Moved:{c:'#c79318',i:'move'},Listed:{c:'#8a8a96',i:'tag'},Sold:{c:'#5a86b8',i:'dollar'},Picked:{c:'#5a86b8',i:'box'},Shipped:{c:'#3f9d63',i:'truck'},Status:{c:'#8a8a96',i:'alert'},Reserved:{c:'#c79318',i:'clock'}};
 
 function avatar(uId,cls){ var u=getUser(uId); return '<span class="avatar '+(cls||'')+'">'+u.init+'</span>'; }
 
@@ -657,11 +690,11 @@ function viewDashboard(){
   var awaiting=DB.orders.filter(function(o){return o.status==='Awaiting Pick';}).length;
 
   var donutSegs=[
-    {label:'Available',value:counts.Available,color:'#3fb950'},
-    {label:'Reserved',value:counts.Reserved,color:'#e3a008'},
-    {label:'Not Listed',value:counts['Not Listed'],color:'#a371f7'},
-    {label:'Sold',value:counts.Sold,color:'#4d9fef'},
-    {label:'Scrapped',value:counts.Scrapped,color:'#666c76'}
+    {label:'Available',value:counts.Available,color:'#3f9d63'},
+    {label:'Reserved',value:counts.Reserved,color:'#c79318'},
+    {label:'Not Listed',value:counts['Not Listed'],color:'#8a8a96'},
+    {label:'Sold',value:counts.Sold,color:'#5a86b8'},
+    {label:'Scrapped',value:counts.Scrapped,color:'#b5635b'}
   ];
 
   function stat(ico,col,bg,v,l,sm){
@@ -693,10 +726,10 @@ function viewDashboard(){
 
     '<div class="card"><div class="card-h"><h3>Inventory aging</h3><span class="sub">in-stock parts</span></div><div class="pad">'+
       bars([
-        {label:'0–30 d',value:aging[0].value,color:'#3fb950'},
-        {label:'31–60 d',value:aging[1].value,color:'#8bc34a'},
-        {label:'61–90 d',value:aging[2].value,color:'#e3a008'},
-        {label:'90+ d',value:aging[3].value,color:'#f85149'}
+        {label:'0–30 d',value:aging[0].value,color:'#3f9d63'},
+        {label:'31–60 d',value:aging[1].value,color:'#8ab06a'},
+        {label:'61–90 d',value:aging[2].value,color:'#c79318'},
+        {label:'90+ d',value:aging[3].value,color:'#b5635b'}
       ])+
       '<div class="note amber" style="margin-top:8px">'+svg('alert')+'<div>'+aged90+' parts have been on the shelf over 90 days — candidates for repricing or scrap review.</div></div>'+
     '</div></div>'+
@@ -785,7 +818,7 @@ function partDetail(p){
     '</div>'+
   '</div>'+
   '<div style="margin-top:22px"><div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:14px"><h3 style="font-family:var(--disp);font-size:15px;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Complete movement history</h3><span class="sub mono" style="color:var(--muted);font-size:11.5px">'+hist.length+' events · most recent first</span></div>'+
-    '<div class="timeline">'+hist.map(function(h){ var m=TLMETA[h.type]||{c:'#8b929d',i:'box'};
+    '<div class="timeline">'+hist.map(function(h){ var m=TLMETA[h.type]||{c:'#8a8a96',i:'box'};
       return '<div class="tl"><span class="dot" style="background:'+m.c+'">'+svg(m.i)+'</span><div class="body"><b>'+esc(historyText(h))+'</b><div class="meta">by <b>'+esc(getUser(h.user).name)+'</b> · '+fmtDT(h.ts)+' · '+relTime(h.ts)+'</div></div></div>';
     }).join('')+'</div>'+
   '</div></div>';
@@ -954,7 +987,7 @@ function viewReports(){
 
   sec('Inventory aging','In-stock parts by time on shelf','aging',
     '<div class="pad" style="display:grid;grid-template-columns:1fr 1fr;gap:26px">'+
-      '<div>'+bars([{label:'0–30 d',value:aging[0].value,color:'#3fb950'},{label:'31–60 d',value:aging[1].value,color:'#8bc34a'},{label:'61–90 d',value:aging[2].value,color:'#e3a008'},{label:'90+ d',value:aging[3].value,color:'#f85149'}])+'</div>'+
+      '<div>'+bars([{label:'0–30 d',value:aging[0].value,color:'#3f9d63'},{label:'31–60 d',value:aging[1].value,color:'#8ab06a'},{label:'61–90 d',value:aging[2].value,color:'#c79318'},{label:'90+ d',value:aging[3].value,color:'#b5635b'}])+'</div>'+
       '<div><div style="font-family:var(--disp);font-size:11px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Oldest in-stock parts</div>'+
         oldest.map(function(p){return '<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-2)"><span class="lk" data-action="locate-go" data-code="'+p.barcode+'" style="font-size:12.5px">'+esc(p.name)+'</span><b class="mono" style="font-size:12.5px">'+daysIn(p.receivedAt)+' d</b></div>';}).join('')+
       '</div>'+
@@ -1087,17 +1120,17 @@ function viewSettings(){
    ROUTER
    ============================================================ */
 var NAVDEF=[
-  {label:'OVERVIEW',header:true},
+  {label:'Overview',header:true},
   {p:'/dashboard',i:'dash',t:'Dashboard'},
-  {label:'WAREHOUSE',header:true},
+  {label:'Warehouse',header:true},
   {p:'/locate',i:'scan',t:'Scan to Locate'},
   {p:'/receive',i:'receive',t:'Receive / Put-away'},
   {p:'/move',i:'move',t:'Move Inventory'},
   {p:'/inventory',i:'list',t:'Inventory'},
-  {label:'SALES',header:true},
+  {label:'Sales',header:true},
   {p:'/orders',i:'tag',t:'eBay Orders',badge:'orders'},
   {p:'/reports',i:'chart',t:'Reports'},
-  {label:'MANAGE',header:true},
+  {label:'Manage',header:true},
   {p:'/requests',i:'flag',t:'Retrieval Requests'},
   {p:'/vehicles',i:'car',t:'Donor Vehicles'},
   {p:'/users',i:'users',t:'Users & Activity'},
@@ -1132,8 +1165,8 @@ function render(){
   var path=hash.split('?')[0];
   var view=ROUTES[path]||viewDashboard;
   $('#view').innerHTML=view();
-  setActiveNav(path);
   renderNav();
+  setActiveNav(path);
   document.body.classList.remove('nav-open');
   var f=$('[data-scan]'); if(f) f.focus();
   window.scrollTo(0,0);
